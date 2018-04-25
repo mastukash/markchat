@@ -16,6 +16,8 @@ using Microsoft.Owin.Security.OAuth;
 using markchat.Models;
 using markchat.Providers;
 using markchat.Results;
+using System.IO;
+using ZstdNet;
 
 namespace markchat.Controllers
 {
@@ -323,12 +325,36 @@ namespace markchat.Controllers
         [Route("Register")]
         public async Task<IHttpActionResult> Register(RegisterBindingModel model)
         {
+ 
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var user = new ApplicationUser() { UserName = model.Email, Email = model.Email };
+            var user = new ApplicationUser() {
+                UserName = model.Email,
+                Email = model.Email,
+                FirstName = model.FirstName,
+                MiddleName = model.MiddleName,
+                LastName = model.LastName,
+                PhoneNumber = model.PhoneNumber,
+                PhotoName = model.PhotoName
+                
+            };
+
+            if (model.File != null && model.PhotoName != null)
+            {
+                user.PhotoName = model.PhotoName;
+                byte[] fileData = model.File;
+                if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Email}")))
+                    Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Email}"));
+                //Compressor c = new Compressor();
+                //fileData = c.Wrap(fileData);
+                System.IO.File.WriteAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
+                            $"~/Images/UserPhotos/{user.Email}/"), model.PhotoName
+                            ), fileData);
+
+            }
 
             IdentityResult result = await UserManager.CreateAsync(user, model.Password);
 
@@ -336,6 +362,7 @@ namespace markchat.Controllers
             {
                 return GetErrorResult(result);
             }
+           // await UserManager.AddToRoleAsync(user.Id, "Realtor");
 
             return Ok();
         }

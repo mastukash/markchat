@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Net.Http;
 using System.Web;
 using Newtonsoft.Json;
 
@@ -50,12 +51,11 @@ namespace markchat.Models
         [StringLength(20, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 2)]
 
         public string LastName { get; set; }
-        [FileSize(10240000)]
-        [FileTypes("jpg,jpeg,png")]
-        public HttpPostedFileBase File { get; set; }
-        public string PathToPhoto { get; set; }
+
+        //public string PhotoName { get; set; }
         public string SecurityCode { get; set; }
 
+        //Папка для фотограії береться із Емейлу користувача
         [Required]
         [Display(Name = "Email")]
         public string Email { get; set; }
@@ -70,6 +70,14 @@ namespace markchat.Models
         [Display(Name = "Confirm password")]
         [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; }
+        [Required(ErrorMessage = "You must provide a phone number")]
+        [Display(Name = "Phone")]
+        [DataType(DataType.PhoneNumber)]
+        [RegularExpression(@"^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$", ErrorMessage = "Not a valid phone number")]
+        public string PhoneNumber { get; set; }
+        public string PhotoName { get; set; }
+        //тут міститься масив байт, назва фотографії і її розширення
+        public byte[] File { get; set; }
     }
     //-------------BEGIN creating custon attributes for ChangePhotoViewModel
     //FileSizeAttribute
