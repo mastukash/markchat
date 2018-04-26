@@ -6,6 +6,7 @@ using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.AspNet.Identity.Owin;
 using System.Data.Entity;
+using System.Collections.Generic;
 
 namespace MarkChat.DAL.Entities
 {
@@ -27,6 +28,8 @@ namespace MarkChat.DAL.Entities
         public string PhotoName { get; set; }
         public DateTime? BirthDate { get; set; }
         public string SecurityCode { get; set; }
+
+        public virtual List<Notification> Notifications { get; set; }
 
         public async Task<ClaimsIdentity> GenerateUserIdentityAsync(UserManager<ApplicationUser> manager, string authenticationType)
         {
