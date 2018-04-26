@@ -18,6 +18,8 @@ using markchat.Providers;
 using markchat.Results;
 using System.IO;
 using ZstdNet;
+using MarkChat.DAL;
+using MarkChat.DAL.Entities;
 
 namespace markchat.Controllers
 {

@@ -10,6 +10,8 @@ using Microsoft.Owin.Security;
 using Microsoft.Owin.Security.Cookies;
 using Microsoft.Owin.Security.OAuth;
 using markchat.Models;
+using MarkChat.DAL;
+using MarkChat.DAL.Entities;
 
 namespace markchat.Providers
 {

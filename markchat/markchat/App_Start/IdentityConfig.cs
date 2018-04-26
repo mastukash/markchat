@@ -4,6 +4,8 @@ using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin;
 using markchat.Models;
+using MarkChat.DAL;
+using MarkChat.DAL.Entities;
 
 namespace markchat
 {
