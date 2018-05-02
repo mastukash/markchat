@@ -20,6 +20,8 @@ using System.IO;
 using ZstdNet;
 using MarkChat.DAL;
 using MarkChat.DAL.Entities;
+using System.Net;
+using MarkChat.DAL.Repository;
 
 namespace markchat.Controllers
 {
@@ -333,6 +335,7 @@ namespace markchat.Controllers
                 return BadRequest(ModelState);
             }
 
+
             var user = new ApplicationUser() {
                 UserName = model.Email,
                 Email = model.Email,
@@ -358,13 +361,34 @@ namespace markchat.Controllers
 
             }
 
+           
+
             IdentityResult result = await UserManager.CreateAsync(user, model.Password);
 
             if (!result.Succeeded)
             {
                 return GetErrorResult(result);
             }
-           // await UserManager.AddToRoleAsync(user.Id, "Realtor");
+            var code = await UserManager.GenerateChangePhoneNumberTokenAsync(user.Id, model.PhoneNumber);
+            if (UserManager.SmsService != null)
+            {
+                var message = new IdentityMessage
+                {
+                    Destination = model.PhoneNumber,
+                    Body = "Your security code is: " + code
+                };
+                // Send token
+                await UserManager.SmsService.SendAsync(message);
+            }
+
+            GenericUnitOfWork unit = new GenericUnitOfWork();
+            var ruser = await unit.Repository<ApplicationUser>().FindByIdAsync(user.Id);
+            ruser.SecurityCode = code;
+            ruser.PhoneNumberConfirmed = false;
+            await unit.SaveAsync();
+            //user.DateVerification = DateTime.Now;
+
+            // await UserManager.AddToRoleAsync(user.Id, "Realtor");
 
             return Ok();
         }
@@ -399,8 +423,77 @@ namespace markchat.Controllers
             {
                 return GetErrorResult(result); 
             }
+         
             return Ok();
         }
+
+
+        // GET: /Account/AddPhoneNumber
+        public IHttpActionResult AddPhoneNumber()
+        {
+            return Ok();// чи щось інше повертати????
+        }
+
+        // POST: /Account/AddPhoneNumber
+        //??????????????
+        [HttpPost]
+        public async Task<IHttpActionResult> AddPhoneNumber(AddPhoneNumberBindingModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            // Generate the token 
+            var code = await UserManager.GenerateChangePhoneNumberTokenAsync(
+                                       User.Identity.GetUserId(), model.Number);
+            if (UserManager.SmsService != null)
+            {
+                var message = new IdentityMessage
+                {
+                    Destination = model.Number,
+                    Body = "Your security code is: " + code
+                };
+                // Send token
+                await UserManager.SmsService.SendAsync(message);
+            }
+            return  Ok(new { PhoneNumber = model.Number });
+        }
+
+        //return ???????????
+        public async Task<IHttpActionResult> VerifyPhoneNumber(string phoneNumber)
+        {
+            var code = await UserManager.GenerateChangePhoneNumberTokenAsync(User.Identity.GetUserId(), phoneNumber);
+            if (phoneNumber == null)
+                return BadRequest(ModelState);
+            else
+                return Ok(new VerifyPhoneNumberBindingModel { PhoneNumber = phoneNumber });
+        }
+
+        //return ???????????
+        [HttpPost]
+        public async Task<IHttpActionResult> VerifyPhoneNumber(VerifyPhoneNumberBindingModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var result = await UserManager.ChangePhoneNumberAsync(User.Identity.GetUserId(), model.PhoneNumber, model.Code);
+            if (result.Succeeded)
+            {
+                var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
+                if (user != null)
+                {
+                    await HttpContext.Current.GetOwinContext().Get<ApplicationSignInManager>().SignInAsync(user, true, false);
+                }
+                return Ok(new { Message = "AddPhoneSuccess" });
+            }
+            ModelState.AddModelError("", "Failed to verify phone");
+            return Ok(model);
+
+           
+        }
+       
 
         protected override void Dispose(bool disposing)
         {
