@@ -134,6 +134,7 @@
     <Compile Include="Repository\EFGenericRepository.cs" />
     <Compile Include="Repository\GenericUnitOfWork.cs" />
     <Compile Include="Repository\IGenericRepository.cs" />
+    <Compile Include="Entities\TagChat.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
