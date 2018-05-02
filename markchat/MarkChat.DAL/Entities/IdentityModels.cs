@@ -19,17 +19,24 @@ namespace MarkChat.DAL.Entities
     // You can add profile data for the user by adding more properties to your ApplicationUser class, please visit https://go.microsoft.com/fwlink/?LinkID=317594 to learn more.
     public class ApplicationUser : IdentityUser
     {
-        [Required]
+        //[Required]
         public string FirstName { get; set; }
-        [Required]
+        //[Required]
         public string MiddleName { get; set; }
-        [Required]
+        //[Required]
         public string LastName { get; set; }
         public string PhotoName { get; set; }
         public DateTime? BirthDate { get; set; }
         public string SecurityCode { get; set; }
 
+        public int SecurityCodeEnterCount { get; set; }
+        public DateTime? LastSecurityCodeSendDate { get; set; }
+
         public virtual List<Notification> Notifications { get; set; }
+
+        public virtual List<TagChat> OwnerChats { get; set; }
+
+        public virtual List<TagChat> TagChats { get; set; }
 
         public async Task<ClaimsIdentity> GenerateUserIdentityAsync(UserManager<ApplicationUser> manager, string authenticationType)
         {
@@ -52,9 +59,53 @@ namespace MarkChat.DAL.Entities
             return new ApplicationDbContext();
         }
 
+        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<TagChat>()
+                .HasMany<ApplicationUser>(s => s.Users)
+                .WithMany(c => c.TagChats)
+                .Map(cs =>
+                {
+                    cs.MapLeftKey("TagChatId");
+                    cs.MapRightKey("UserId");
+                    cs.ToTable("ChatUsers");
+                });
+
+
+            modelBuilder.Entity<TagChat>()
+          .HasRequired<ApplicationUser>(s => s.OwnerUser )
+          .WithMany(g => g.OwnerChats).WillCascadeOnDelete(false);
+
+            modelBuilder.Entity<TagChat>()
+          .HasRequired<Category>(s => s.RootCategory)
+          .WithMany(g => g.ChatRoots).WillCascadeOnDelete(false);
+
+            //modelBuilder.Entity<Category>()
+            //       .HasOptional(c => c.ParentCategory)
+            //       .WithMany()
+            //       .HasForeignKey(c => c.ParentCategoryId);
+
+
+
+            modelBuilder.Entity<Category>()
+        .HasMany(c => c.ParentCategories)
+        .WithMany(c => c.ChildCategories)
+        .Map(m =>
+        {
+            m.MapLeftKey("ParentId");
+            m.MapRightKey("ChildId");
+            m.ToTable("ChildCategories");
+        });
+
+
+        }
+
         public DbSet<Category> Categoties { get; set; }
-        public DbSet<CategoryTag> CategoryTags { get; set; }
+        //public DbSet<CategoryTag> CategoryTags { get; set; }
         public DbSet<Currency> Currencies { get; set; }
+        public DbSet<TagChat> TagChats { get; set; }
         public DbSet<Notification> Notifications { get; set; }
     }
 
