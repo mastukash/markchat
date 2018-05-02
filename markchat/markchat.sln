@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "markchat", "markchat\markch
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MarkChat.DAL", "MarkChat.DAL\MarkChat.DAL.csproj", "{EDBBB453-EE90-4A1C-8A1A-E23740A7617D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp31", "..\..\markchatClient\ConsoleApp31\ConsoleApp31.csproj", "{7E82353A-9582-4225-BACB-DD922BDBF3AD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp31", "markchatClient\ConsoleApp31\ConsoleApp31.csproj", "{7E82353A-9582-4225-BACB-DD922BDBF3AD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
