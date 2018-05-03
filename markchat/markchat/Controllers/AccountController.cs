@@ -385,8 +385,9 @@ namespace markchat.Controllers
             var ruser = await unit.Repository<ApplicationUser>().FindByIdAsync(user.Id);
             ruser.SecurityCode = code;
             ruser.PhoneNumberConfirmed = false;
+            user.LastSecurityCodeSendDate = DateTime.Now;
+
             await unit.SaveAsync();
-            //user.DateVerification = DateTime.Now;
 
             // await UserManager.AddToRoleAsync(user.Id, "Realtor");
 

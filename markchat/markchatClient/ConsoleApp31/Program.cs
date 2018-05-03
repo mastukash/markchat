@@ -51,7 +51,7 @@ namespace ConsoleApp31
                 Email = "ooooooooo@ahgsd.asd",
                 Password = "1qaz!QAZ",
                 ConfirmPassword = "1qaz!QAZ",
-                PhoneNumber = "+380637873195",
+                PhoneNumber = "+380936201401",
                 PhotoName = "1.jpg",
                 File = null,
 
@@ -61,7 +61,7 @@ namespace ConsoleApp31
             //model.PhotoName = "1.jpg";
 
             // model.File.Headers.ContentType = MediaTypeHeaderValue.Parse("multipart/form-data");
-            cl.BaseAddress = new Uri("http://localhost:2101/");
+            cl.BaseAddress = new Uri("https://localhost:44340/");
             cl.DefaultRequestHeaders.Accept.Clear();
             cl.DefaultRequestHeaders.Accept.Add(
                 new MediaTypeWithQualityHeaderValue("application/bson"));
