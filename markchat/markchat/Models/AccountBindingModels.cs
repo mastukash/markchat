@@ -99,6 +99,16 @@ namespace markchat.Models
         public byte[] File { get; set; }
     }
     //-------------BEGIN creating custon attributes for ChangePhotoViewModel
+
+    public class UserAccountBindingModel
+    {
+        [Required]
+        public string Username { get; set; }
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; }
+    }
     //FileSizeAttribute
     public class FileSizeAttribute : ValidationAttribute
     {

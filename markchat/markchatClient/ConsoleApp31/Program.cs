@@ -16,8 +16,29 @@ namespace ConsoleApp31
     {
         static void Main(string[] args)
         {
-            F();
+            Login();
             //cl.PostAsJsonAsync("api/Account/Register", model);
+        }
+
+        public static async void Login()
+        {
+            
+            HttpClient cl = new HttpClient();
+
+            UserAccountBindingModel model = new UserAccountBindingModel()
+            {
+                Username = "ooooooooo@ahgsd.asd",
+                Password = "1qaz!QAZ"
+            };
+         
+            cl.BaseAddress = new Uri("https://localhost:44340/");
+            cl.DefaultRequestHeaders.Accept.Clear();
+            cl.DefaultRequestHeaders.Accept.Add(
+                new MediaTypeWithQualityHeaderValue("application/json"));
+
+            var response = cl.PostAsJsonAsync("api/Account/login", model).Result;
+            response.EnsureSuccessStatusCode();
+
         }
         public static async void F()
         {
@@ -42,22 +63,31 @@ namespace ConsoleApp31
 
             HttpClient cl = new HttpClient();
 
-            RegisterBindingModel model = new RegisterBindingModel()
-            {
-                FirstName = "ooooooo",
-                MiddleName = "oooooo",
-                LastName = "sssssss",
-                SecurityCode = "1",
-                Email = "ooooooooo@ahgsd.asd",
-                Password = "1qaz!QAZ",
-                ConfirmPassword = "1qaz!QAZ",
-                PhoneNumber = "+380936201401",
-                PhotoName = "1.jpg",
-                File = null,
+            //RegisterBindingModel model = new RegisterBindingModel()
+            //{
+            //    FirstName = "ooooooo",
+            //    MiddleName = "oooooo",
+            //    LastName = "sssssss",
+            //    SecurityCode = "1",
+            //    Email = "ooooooooo@ahgsd.asd",
+            //    Password = "1qaz!QAZ",
+            //    ConfirmPassword = "1qaz!QAZ",
+            //    PhoneNumber = "+380936201401",
+            //    PhotoName = "1.jpg",
+            //    File = null,
 
+            //};
+
+            UserAccountBindingModel model = new UserAccountBindingModel()
+            {
+                Username = "ooooooo",
+                Password = "1qaz!QAZ"
             };
 
-            model.File = System.IO.File.ReadAllBytes("1.jpg");
+
+
+
+             //   model.File = System.IO.File.ReadAllBytes("1.jpg");
             //model.PhotoName = "1.jpg";
 
             // model.File.Headers.ContentType = MediaTypeHeaderValue.Parse("multipart/form-data");
@@ -70,6 +100,15 @@ namespace ConsoleApp31
             response.EnsureSuccessStatusCode();
 
         }
+    }
+
+    public class UserAccountBindingModel
+    {
+       
+        public string Username { get; set; }
+
+         
+        public string Password { get; set; }
     }
 
     public class RegisterBindingModel

@@ -23,6 +23,7 @@ using MarkChat.DAL;
 using MarkChat.DAL.Entities;
 using System.Net;
 using MarkChat.DAL.Repository;
+using Microsoft.Owin.Testing;
 
 namespace markchat.Controllers
 {
@@ -347,6 +348,32 @@ namespace markchat.Controllers
             }
 
             return logins;
+        }
+
+        // POST api/user/login
+        [HttpPost]
+        [AllowAnonymous]
+        [Route("login")]
+        public async Task<IHttpActionResult> LoginUser(UserAccountBindingModel model)
+        {
+            if (model == null)
+            {
+                return this.BadRequest("Invalid user data");
+            }
+
+            // Invoke the "token" OWIN service to perform the login (POST /api/token)
+            var testServer = TestServer.Create<Startup>();
+            var requestParams = new List<KeyValuePair<string, string>>
+    {
+        new KeyValuePair<string, string>("grant_type", "password"),
+        new KeyValuePair<string, string>("username", model.Username),
+        new KeyValuePair<string, string>("password", model.Password)
+    };
+            var requestParamsFormUrlEncoded = new FormUrlEncodedContent(requestParams);
+            var tokenServiceResponse = await testServer.HttpClient.PostAsync(
+                "/Token", requestParamsFormUrlEncoded);
+
+            return this.ResponseMessage(tokenServiceResponse);
         }
 
         // POST api/Account/Register
