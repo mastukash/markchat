@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using System.Linq;
 using System.Web;
 using System.Web.Http;
 using System.Web.Http.ModelBinding;
@@ -31,9 +32,33 @@ namespace markchat.Controllers
     {
         private const string LocalLoginProvider = "Local";
         private ApplicationUserManager _userManager;
+        private GenericUnitOfWork repository;
+
+        #region ChatTagAPI
+        [HttpPost]
+        public async Task<HttpResponseMessage> GetUserTagChats()
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());    
+            
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound,"User doesn't exists");
+            }
+
+            Dictionary<int, string> chats = new Dictionary<int, string>();
+
+            (await repository.Repository<TagChat>().FindAllAsync(x => x.Users.Contains(user))).ToList()
+                .ForEach(x=> chats.Add(x.Id, x.Name));
+
+            var responce = Request.CreateResponse<Dictionary<int, string>>(HttpStatusCode.OK, chats);
+
+            return responce;
+        }
+        #endregion
 
         public AccountController()
         {
+            repository = new GenericUnitOfWork();
         }
 
         public AccountController(ApplicationUserManager userManager,

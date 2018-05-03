@@ -16,17 +16,13 @@ namespace MarkChat.DAL
 
         public TagChat()
         {
-        //    CategoryTags = new List<CategoryTag>();
             Users = new List<ApplicationUser>();
         }
 
 
         public virtual Category RootCategory { get; set; }
         public virtual ApplicationUser OwnerUser { get; set; }
-
-        //public virtual ICollection<CategoryTag> CategoryTags { get; set; }
+        
         public virtual ICollection<ApplicationUser> Users { get; set; }
-
-
     }
 }
