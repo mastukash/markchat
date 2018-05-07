@@ -24,6 +24,7 @@ namespace MarkChat.DAL.Entities
 
         public virtual Currency Currency { get; set; }
 
+        public virtual TagChat TagChat { get; set; }
         
         public virtual Category Category { get; set; }
 
