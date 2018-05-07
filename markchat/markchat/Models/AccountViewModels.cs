@@ -3,6 +3,16 @@ using System.Collections.Generic;
 
 namespace markchat.Models
 {
+
+
+    public class PhoneConfirnationModel
+    {
+        public string Token { get; set; }
+        public string Code { get; set; }
+    }
+
+
+
     // Models returned by AccountController actions.
 
     public class ExternalLoginViewModel

@@ -36,7 +36,61 @@ namespace markchat.Controllers
         private GenericUnitOfWork repository;
 
         #region ChatTagAPI
+
         [HttpPost]
+        //returns last 20 chat messages 
+        public async Task<HttpResponseMessage> GetLastMessages(int tagChatId)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+
+            var tagChat = await repository.Repository<TagChat>().FindByIdAsync(tagChatId);
+
+            if(!tagChat.Users.Contains(user))
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "You are not chat member");
+            }
+
+            var dbNotifications = tagChat.Messages.OrderByDescending(x => x.PublicationDate).Take(20);
+
+            var responceModel = dbNotifications.Select(x =>
+            {
+                var tmp = new TagChatMessageModel()
+                {
+                    Id = x.Id,
+                    AuthorFullName = x.Author?.FullName,
+                    //AuthorFullName = x.Author?.FirstName + " " + x.Author?.LastName,
+                    AuthorPhoto = x.Author?.PhotoName,
+                    Currency = x.Currency?.Symbol.ToString(),
+                    AuthorPhone = x.Author?.PhoneNumber,
+                    Description = x.Description,
+                    Price = x.Price,
+                    PublicationDate = x.PublicationDate,
+                    Tags = new Stack<string>()
+                };
+                var messagecategory = x.Category;
+
+                while (messagecategory != null)
+                {
+                    tmp.Tags.Push(messagecategory.Name);
+                    messagecategory = messagecategory.ParentCategory;
+                } 
+                return tmp;
+            }
+            ).ToList();
+
+            
+
+            var responce = Request.CreateResponse(HttpStatusCode.OK, responceModel);
+
+            return responce;
+        }
+
+        [HttpGet]
         public async Task<HttpResponseMessage> GetUserTagChats()
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());    
@@ -55,7 +109,196 @@ namespace markchat.Controllers
 
             return responce;
         }
+
         #endregion
+
+
+        #region Registry
+
+        [HttpPost]
+        [Route("GetVerificationCode")]
+        [AllowAnonymous]
+        public async Task<IHttpActionResult> GetVerificationCode(string phoneNumber)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            Random rand = new Random();
+            int code = rand.Next(1000, 9999);
+            
+            if (UserManager.SmsService != null)
+            {
+                var message = new IdentityMessage
+                {
+                    Destination = phoneNumber,
+                    Body = "Your security code is: " + code
+                };
+                // Send token
+                await UserManager.SmsService.SendAsync(message);
+            }
+         
+
+            string token = RandomOAuthStateGenerator.Generate(64);
+
+            Confirmation confirmationCode = new Confirmation()
+            {
+                PhoneNumber = phoneNumber,
+                Code = code.ToString(),
+                Date = DateTime.Now,
+                Token = token, 
+                Confirmed = false
+            };
+
+            repository.Repository<Confirmation>().Add(confirmationCode);
+            
+            await repository.SaveAsync();
+
+            return Ok(new { Token = token });
+        }
+
+
+
+        [HttpPost]
+        [Route("ConfirmPhone")]
+        [AllowAnonymous]
+        public async Task<IHttpActionResult> ConfirmPhone(PhoneConfirnationModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            Confirmation confirmationCode = (await repository.Repository<Confirmation>().FindAllAsync(item => item.Token == model.Token)).FirstOrDefault();
+
+            if (confirmationCode == null)
+            {
+                return BadRequest("Invalid Token");
+            }
+
+            if (confirmationCode.Code != model.Code)
+            {
+                return BadRequest("Invalid confirmation code");
+            }
+
+            confirmationCode.Confirmed = true;
+            
+            await repository.SaveAsync();
+
+            return Ok(new { Token = confirmationCode.Token });
+        }
+
+
+
+        [HttpPost]
+        [AllowAnonymous]
+        [Route("Register")]
+        public async Task<IHttpActionResult> Register(RegisterBindingModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            Confirmation confirmedPhone = (await repository.Repository<Confirmation>()
+                .FindAllAsync(item => item.Token == model.Token)).FirstOrDefault();
+
+            if (confirmedPhone == null)
+            {
+                return BadRequest("Invalid Token");
+            }
+
+            var user = new ApplicationUser()
+            {
+                UserName = confirmedPhone.PhoneNumber,
+                //Email = model.Email,
+                //FirstName = model.FirstName,
+                //MiddleName = model.MiddleName,
+                //LastName = model.LastName,
+                PhoneNumber = confirmedPhone.PhoneNumber,
+                PhoneNumberConfirmed = confirmedPhone.Confirmed,
+                //PhotoName = model.PhotoName
+
+            };
+
+            //if (model.File != null && model.PhotoName != null)
+            //{
+            //    user.PhotoName = model.PhotoName;
+            //    byte[] fileData = model.File;
+            //    if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Email}")))
+            //        Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Email}"));
+            //    //Compressor c = new Compressor();
+            //    //fileData = c.Wrap(fileData);
+            //    System.IO.File.WriteAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
+            //                $"~/Images/UserPhotos/{user.Email}/"), model.PhotoName
+            //                ), fileData);
+
+            //}
+
+
+
+            IdentityResult result = await UserManager.CreateAsync(user, model.Password);
+
+            if (!result.Succeeded)
+            {
+                return GetErrorResult(result);
+            }
+
+            await repository.SaveAsync();
+
+            return Ok(new { Token = confirmedPhone.Token});
+        }
+
+
+        [HttpPost]
+        [AllowAnonymous]
+        [Route("ConfigurateUserCabinet")]
+        public async Task<IHttpActionResult> ConfigurateUserCabinet(CabinetUserBindingModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            Confirmation confirmedPhone = (await repository.Repository<Confirmation>()
+                .FindAllAsync(item => item.Token == model.Token)).FirstOrDefault();
+
+            if (confirmedPhone == null)
+            {
+                return BadRequest("Invalid Token");
+            }
+
+            var user = (await repository.Repository<ApplicationUser>().FindAllAsync(x => x.PhoneNumber == confirmedPhone.PhoneNumber)).FirstOrDefault();
+
+            user.FullName = model.FullName;
+
+            user.Email = model.Email;
+            
+            if (model.File != null && model.PhotoName != null)
+            {
+                user.PhotoName = model.PhotoName;
+                byte[] fileData = model.File;
+                if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Email}")))
+                    Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Email}"));
+                //Compressor c = new Compressor();
+                //fileData = c.Wrap(fileData);
+                System.IO.File.WriteAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
+                            $"~/Images/UserPhotos/{user.Email}/"), model.PhotoName
+                            ), fileData);
+
+            }
+
+            await repository.Repository<Confirmation>().RemoveAsync(confirmedPhone);
+          
+
+            await repository.SaveAsync();
+
+            return Ok(new { Token = confirmedPhone.Token });
+        }
+
+        #endregion
+
 
         public AccountController()
         {
@@ -376,75 +619,75 @@ namespace markchat.Controllers
             return this.ResponseMessage(tokenServiceResponse);
         }
 
-        // POST api/Account/Register
-        [AllowAnonymous]
-        [Route("Register")]
-        public async Task<IHttpActionResult> Register(RegisterBindingModel model)
-        {
+        //// POST api/Account/Register
+        //[AllowAnonymous]
+        //[Route("Register")]
+        //public async Task<IHttpActionResult> Register(RegisterBindingModel model)
+        //{
  
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+        //    if (!ModelState.IsValid)
+        //    {
+        //        return BadRequest(ModelState);
+        //    }
 
 
-            var user = new ApplicationUser() {
-                UserName = model.Email,
-                Email = model.Email,
-                FirstName = model.FirstName,
-                MiddleName = model.MiddleName,
-                LastName = model.LastName,
-                PhoneNumber = model.PhoneNumber,
-                PhotoName = model.PhotoName
+        //    var user = new ApplicationUser() {
+        //        UserName = model.Email,
+        //        Email = model.Email,
+        //        FirstName = model.FirstName,
+        //        MiddleName = model.MiddleName,
+        //        LastName = model.LastName,
+        //        PhoneNumber = model.PhoneNumber,
+        //        PhotoName = model.PhotoName
                 
-            };
+        //    };
 
-            if (model.File != null && model.PhotoName != null)
-            {
-                user.PhotoName = model.PhotoName;
-                byte[] fileData = model.File;
-                if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Email}")))
-                    Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Email}"));
-                //Compressor c = new Compressor();
-                //fileData = c.Wrap(fileData);
-                System.IO.File.WriteAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/Images/UserPhotos/{user.Email}/"), model.PhotoName
-                            ), fileData);
+        //    if (model.File != null && model.PhotoName != null)
+        //    {
+        //        user.PhotoName = model.PhotoName;
+        //        byte[] fileData = model.File;
+        //        if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Email}")))
+        //            Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Email}"));
+        //        //Compressor c = new Compressor();
+        //        //fileData = c.Wrap(fileData);
+        //        System.IO.File.WriteAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
+        //                    $"~/Images/UserPhotos/{user.Email}/"), model.PhotoName
+        //                    ), fileData);
 
-            }
+        //    }
 
            
 
-            IdentityResult result = await UserManager.CreateAsync(user, model.Password);
+        //    IdentityResult result = await UserManager.CreateAsync(user, model.Password);
 
-            if (!result.Succeeded)
-            {
-                return GetErrorResult(result);
-            }
-            var code = await UserManager.GenerateChangePhoneNumberTokenAsync(user.Id, model.PhoneNumber);
-            if (UserManager.SmsService != null)
-            {
-                var message = new IdentityMessage
-                {
-                    Destination = model.PhoneNumber,
-                    Body = "Your security code is: " + code
-                };
-                // Send token
-                await UserManager.SmsService.SendAsync(message);
-            }
+        //    if (!result.Succeeded)
+        //    {
+        //        return GetErrorResult(result);
+        //    }
+        //    var code = await UserManager.GenerateChangePhoneNumberTokenAsync(user.Id, model.PhoneNumber);
+        //    if (UserManager.SmsService != null)
+        //    {
+        //        var message = new IdentityMessage
+        //        {
+        //            Destination = model.PhoneNumber,
+        //            Body = "Your security code is: " + code
+        //        };
+        //        // Send token
+        //        await UserManager.SmsService.SendAsync(message);
+        //    }
 
-            GenericUnitOfWork unit = new GenericUnitOfWork();
-            var ruser = await unit.Repository<ApplicationUser>().FindByIdAsync(user.Id);
-            ruser.SecurityCode = code;
-            ruser.PhoneNumberConfirmed = false;
-            user.LastSecurityCodeSendDate = DateTime.Now;
+        //    GenericUnitOfWork unit = new GenericUnitOfWork();
+        //    var ruser = await unit.Repository<ApplicationUser>().FindByIdAsync(user.Id);
+        //    ruser.SecurityCode = code;
+        //    ruser.PhoneNumberConfirmed = false;
+        //    user.LastSecurityCodeSendDate = DateTime.Now;
 
-            await unit.SaveAsync();
+        //    await unit.SaveAsync();
 
-            // await UserManager.AddToRoleAsync(user.Id, "Realtor");
+        //    // await UserManager.AddToRoleAsync(user.Id, "Realtor");
 
-            return Ok();
-        }
+        //    return Ok();
+        //}
 
         // POST api/Account/RegisterExternal
         [OverrideAuthentication]
@@ -666,4 +909,6 @@ namespace markchat.Controllers
 
         #endregion
     }
+
+   
 }

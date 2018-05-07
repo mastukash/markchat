@@ -127,6 +127,7 @@
   <ItemGroup>
     <Compile Include="Entities\Category.cs" />
     <Compile Include="Entities\CategoryTag.cs" />
+    <Compile Include="Entities\Confirmation.cs" />
     <Compile Include="Entities\Currency.cs" />
     <Compile Include="Entities\IdentityModels.cs" />
     <Compile Include="Entities\Notification.cs" />

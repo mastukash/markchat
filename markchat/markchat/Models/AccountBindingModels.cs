@@ -55,29 +55,51 @@ namespace markchat.Models
         public string ConfirmPassword { get; set; }
     }
 
-    public class RegisterBindingModel
+
+    public class CabinetUserBindingModel
     {
-        [Required]
-        [Display(Name = "FirstName")]
-        [StringLength(20, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 2)]
-        public string FirstName { get; set; }
-        [Required]
-        [Display(Name = "MiddleName")]
-        [StringLength(20, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 2)]
-        public string MiddleName { get; set; }
-        [Required]
-        [Display(Name = "LastName")]
-        [StringLength(20, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 2)]
+        public string PhotoName { get; set; }
+        //тут міститься масив байт, назва фотографії і її розширення
+        public byte[] File { get; set; }
 
-        public string LastName { get; set; }
-
-        //public string PhotoName { get; set; }
-        public string SecurityCode { get; set; }
-
-        //Папка для фотограії береться із Емейлу користувача
-        [Required]
         [Display(Name = "Email")]
         public string Email { get; set; }
+
+        [Required]
+        [Display(Name = "Full Name")]
+        [StringLength(20, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 2)]
+
+        public string FullName { get; set; }
+
+        public string Token { get; set; }
+
+    }
+
+    public class RegisterBindingModel
+    {
+        //[Required]
+        //[Display(Name = "FirstName")]
+        //[StringLength(20, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 2)]
+        //public string FirstName { get; set; }
+        //[Required]
+        //[Display(Name = "MiddleName")]
+        //[StringLength(20, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 2)]
+        //public string MiddleName { get; set; }
+        //[Required]
+        //[Display(Name = "LastName")]
+        //[StringLength(20, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 2)]
+
+        //public string LastName { get; set; }
+
+        public string Token { get; set; }
+
+        ////public string PhotoName { get; set; }
+        //public string SecurityCode { get; set; }
+
+        ////Папка для фотограії береться із Емейлу користувача
+        //[Required]
+        //[Display(Name = "Email")]
+        //public string Email { get; set; }
 
         [Required]
         [StringLength(100, ErrorMessage = "The {0} must be at least {2} characters long.", MinimumLength = 6)]
@@ -85,20 +107,22 @@ namespace markchat.Models
         [Display(Name = "Password")]
         public string Password { get; set; }
 
-        [DataType(DataType.Password)]
-        [Display(Name = "Confirm password")]
-        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
-        public string ConfirmPassword { get; set; }
-        [Required(ErrorMessage = "You must provide a phone number")]
-        [Display(Name = "Phone")]
-        [DataType(DataType.PhoneNumber)]
+        //[DataType(DataType.Password)]
+        //[Display(Name = "Confirm password")]
+        //[Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        //public string ConfirmPassword { get; set; }
+        //[Required(ErrorMessage = "You must provide a phone number")]
+        //[Display(Name = "Phone")]
+        //[DataType(DataType.PhoneNumber)]
         //[RegularExpression(@"^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$", ErrorMessage = "Not a valid phone number")]
-        public string PhoneNumber { get; set; }
-        public string PhotoName { get; set; }
-        //тут міститься масив байт, назва фотографії і її розширення
-        public byte[] File { get; set; }
+        //public string PhoneNumber { get; set; }
+        //public string PhotoName { get; set; }
+        ////тут міститься масив байт, назва фотографії і її розширення
+        //public byte[] File { get; set; }
     }
     //-------------BEGIN creating custon attributes for ChangePhotoViewModel
+
+        
 
     public class UserAccountBindingModel
     {
