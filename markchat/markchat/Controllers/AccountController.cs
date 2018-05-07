@@ -118,7 +118,7 @@ namespace markchat.Controllers
         [HttpPost]
         [Route("GetVerificationCode")]
         [AllowAnonymous]
-        public async Task<IHttpActionResult> GetVerificationCode(string phoneNumber)
+        public async Task<IHttpActionResult> GetVerificationCode(GetVerificationCodeBindingModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -132,7 +132,7 @@ namespace markchat.Controllers
             {
                 var message = new IdentityMessage
                 {
-                    Destination = phoneNumber,
+                    Destination = model.PhoneNumber,
                     Body = "Your security code is: " + code
                 };
                 // Send token
@@ -144,7 +144,7 @@ namespace markchat.Controllers
 
             Confirmation confirmationCode = new Confirmation()
             {
-                PhoneNumber = phoneNumber,
+                PhoneNumber = model.PhoneNumber,
                 Code = code.ToString(),
                 Date = DateTime.Now,
                 Token = token, 

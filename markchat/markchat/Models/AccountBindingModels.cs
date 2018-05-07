@@ -8,6 +8,10 @@ using Newtonsoft.Json;
 
 namespace markchat.Models
 {
+    public class GetVerificationCodeBindingModel
+    {
+        public string PhoneNumber { get; set; }
+    }
     // Models used as parameters to AccountController actions.
     public class AddPhoneNumberBindingModel
     {
