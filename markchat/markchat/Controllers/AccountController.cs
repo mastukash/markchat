@@ -36,7 +36,8 @@ namespace markchat.Controllers
         private GenericUnitOfWork repository;
 
         #region ChatTagAPI
-        [HttpPost]
+        [HttpGet]
+        [Route("GetUserTagChats")]
         public async Task<HttpResponseMessage> GetUserTagChats()
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());    
@@ -361,7 +362,7 @@ namespace markchat.Controllers
                 return this.BadRequest("Invalid user data");
             }
 
-            // Invoke the "token" OWIN service to perform the login (POST /api/token)
+            // Invoke the "token" OWIN service to perform the login (POST /token)
             var testServer = TestServer.Create<Startup>();
             var requestParams = new List<KeyValuePair<string, string>>
     {
@@ -372,7 +373,6 @@ namespace markchat.Controllers
             var requestParamsFormUrlEncoded = new FormUrlEncodedContent(requestParams);
             var tokenServiceResponse = await testServer.HttpClient.PostAsync(
                 "/Token", requestParamsFormUrlEncoded);
-
             return this.ResponseMessage(tokenServiceResponse);
         }
 
