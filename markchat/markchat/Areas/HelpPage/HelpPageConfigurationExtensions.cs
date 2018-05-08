@@ -28,6 +28,7 @@ namespace markchat.Areas.HelpPage
         public static void SetDocumentationProvider(this HttpConfiguration config, IDocumentationProvider documentationProvider)
         {
             config.Services.Replace(typeof(IDocumentationProvider), documentationProvider);
+        //    config.SetSampleForType("[0]=foo&[1]=bar", new MediaTypeHeaderValue("application/x-www-form-urlencoded"), typeof(IEnumerable<string>));
         }
 
         /// <summary>

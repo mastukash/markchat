@@ -38,8 +38,9 @@ namespace markchat.Controllers
         #region ChatTagAPI
 
         [HttpPost]
+        [Route("GetLastMessages")]
         //returns last 20 chat messages 
-        public async Task<HttpResponseMessage> GetLastMessages(int tagChatId)
+        public async Task<HttpResponseMessage> GetLastMessages([FromBody]int TagChatId)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
 
@@ -48,7 +49,7 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
             }
 
-            var tagChat = await repository.Repository<TagChat>().FindByIdAsync(tagChatId);
+            var tagChat = await repository.Repository<TagChat>().FindByIdAsync(TagChatId);
 
             if(!tagChat.Users.Contains(user))
             {
@@ -91,6 +92,7 @@ namespace markchat.Controllers
         }
 
         [HttpGet]
+        [Route("GetUserTagChats")]
         public async Task<HttpResponseMessage> GetUserTagChats()
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());    
@@ -110,10 +112,166 @@ namespace markchat.Controllers
             return responce;
         }
 
+        [HttpPost]
+        [Route("AddNotification")]
+        public async Task<HttpResponseMessage> AddNotification(AddNotificationBindingModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null || model == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+
+            TagChat chat = await repository.Repository<TagChat>().FindByIdAsync(model.IdChat);
+            Category category = await repository.Repository<Category>().FindByIdAsync(model.IdCategory);
+            Currency currency = await repository.Repository<Currency>().FindByIdAsync(model.IdCurrency);
+
+            if (chat == null || category == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Category doesn't exists");
+            }
+
+            repository.Repository<Notification>().Add(new Notification()
+            {
+                Author= user,
+                PublicationDate = DateTime.Now,
+                Category = category,
+                Price = model.Price,
+                Description = model.Description,
+                Currency = currency,
+                TagChat = chat
+            });
+
+            await repository.SaveAsync();
+
+            return Request.CreateResponse(HttpStatusCode.OK);
+        }
+
+        [HttpPost]
+        [Route("FindNotifications")]
+        public async Task<HttpResponseMessage> FindNotifications(FindNotificationBindingModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null || model == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+
+            Category category = await repository.Repository<Category>().FindByIdAsync(model.LastCategoryId);
+
+            if (category == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Category doesn't exists");
+            }
+
+            List<Notification> messages = new List<Notification>();
+                        
+            Action<Category> search = null;
+            search = delegate (Category c)
+            {
+                c.Notifications.ForEach(y => messages.Add(y));
+
+                if (c.ChildCategories.Count > 0)
+                    c.ChildCategories.ForEach(x => search(x));
+            };
+
+            search(category);
+
+            var responceModel = messages.Select(x =>
+            {
+                var tmp = new TagChatMessageModel()
+                {
+                    Id = x.Id,
+                    AuthorFullName = x.Author?.FullName,
+                    //AuthorFullName = x.Author?.FirstName + " " + x.Author?.LastName,
+                    AuthorPhoto = x.Author?.PhotoName,
+                    Currency = x.Currency?.Symbol.ToString(),
+                    AuthorPhone = x.Author?.PhoneNumber,
+                    Description = x.Description,
+                    Price = x.Price,
+                    PublicationDate = x.PublicationDate,
+                    Tags = new Stack<string>()
+                };
+                var messagecategory = x.Category;
+
+                while (messagecategory != null)
+                {
+                    tmp.Tags.Push(messagecategory.Name);
+                    messagecategory = messagecategory.ParentCategory;
+                }
+                return tmp;
+            }
+           ).ToList();
+
+            return Request.CreateResponse(HttpStatusCode.OK, responceModel);
+        }
+
+        [HttpPost]
+        [Route("GetRootCategories")]
+        public async Task<HttpResponseMessage> GetRootCategories([FromBody] int TagChatId)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null || TagChatId == 0)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+
+            TagChat chat = await repository.Repository<TagChat>().FindByIdAsync(TagChatId);
+
+            if (chat == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
+            }
+
+
+            Dictionary<int, string> childCategories = new Dictionary<int, string>();
+            chat.RootCategory.ChildCategories.ForEach(x => childCategories.Add(x.Id, x.Name));
+
+
+            var responce = Request.CreateResponse<Dictionary<int, string>>(HttpStatusCode.OK, childCategories);
+
+            return responce;
+        }
+
+        [HttpPost]
+        [Route("GetChildTagsById")]
+        public async Task<HttpResponseMessage> GetChildTagsById([FromBody] int ParentCategoryId)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null || ParentCategoryId == 0)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+
+            Category category = await repository.Repository<Category>().FindByIdAsync(ParentCategoryId);
+
+            if (category == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Category doesn't exists");
+            }
+
+
+            Dictionary<int, string> childCategories = new Dictionary<int, string>();
+            category.ChildCategories.ForEach(x => childCategories.Add(x.Id, x.Name));
+
+
+            var responce = Request.CreateResponse<Dictionary<int, string>>(HttpStatusCode.OK, childCategories);
+
+            return responce;
+        }
+
         #endregion
 
 
         #region Registry
+
+        [AllowAnonymous]
+        [HttpPost]
+        [Route("Test")]
+        public IHttpActionResult Test()
+        {
+            return Ok("test");
+        }
 
         [HttpPost]
         [Route("GetVerificationCode")]
@@ -212,7 +370,7 @@ namespace markchat.Controllers
             var user = new ApplicationUser()
             {
                 UserName = confirmedPhone.PhoneNumber,
-                //Email = model.Email,
+                Email = confirmedPhone.PhoneNumber+"@qwer.com",
                 //FirstName = model.FirstName,
                 //MiddleName = model.MiddleName,
                 //LastName = model.LastName,
@@ -910,5 +1068,5 @@ namespace markchat.Controllers
         #endregion
     }
 
-   
+    
 }

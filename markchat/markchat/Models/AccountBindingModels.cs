@@ -12,6 +12,25 @@ namespace markchat.Models
     {
         public string PhoneNumber { get; set; }
     }
+
+    public class FindNotificationBindingModel
+    {
+        public int LastCategoryId { get; set; }
+        public int Price { get; set; }
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+
+    }
+
+
+    public class AddNotificationBindingModel
+    {
+        public int IdCategory { get; set; }
+        public int IdChat { get; set; }
+        public int Price { get; set; }
+        public string Description { get; set; }
+        public int IdCurrency { get; set; }
+    }
     // Models used as parameters to AccountController actions.
     public class AddPhoneNumberBindingModel
     {
