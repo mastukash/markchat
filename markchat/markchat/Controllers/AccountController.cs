@@ -762,7 +762,7 @@ namespace markchat.Controllers
                 return this.BadRequest("Invalid user data");
             }
 
-            // Invoke the "token" OWIN service to perform the login (POST /api/token)
+            // Invoke the "token" OWIN service to perform the login (POST /token)
             var testServer = TestServer.Create<Startup>();
             var requestParams = new List<KeyValuePair<string, string>>
     {
@@ -773,7 +773,6 @@ namespace markchat.Controllers
             var requestParamsFormUrlEncoded = new FormUrlEncodedContent(requestParams);
             var tokenServiceResponse = await testServer.HttpClient.PostAsync(
                 "/Token", requestParamsFormUrlEncoded);
-
             return this.ResponseMessage(tokenServiceResponse);
         }
 

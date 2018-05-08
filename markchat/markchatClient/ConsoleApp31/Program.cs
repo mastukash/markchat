@@ -10,8 +10,27 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Net.Http.Formatting;
 
+using Newtonsoft.Json;
+
+ 
+
+ 
+
 namespace ConsoleApp31
 {
+    public class Token
+    {
+        [JsonProperty("access_token")]
+        public string AccessToken { get; set; }
+        [JsonProperty("token_type")]
+        public string TokenType { get; set; }
+        [JsonProperty("expires_in")]
+        public int ExpiresIn { get; set; }
+        [JsonProperty("refresh_token")]
+        public string RefreshToken { get; set; }
+        [JsonProperty("error")]
+        public string Error { get; set; }
+    }
     class Program
     {
         static void Main(string[] args)
@@ -37,7 +56,36 @@ namespace ConsoleApp31
                 new MediaTypeWithQualityHeaderValue("application/json"));
 
             var response = cl.PostAsJsonAsync("api/Account/login", model).Result;
+
+            //var res = response.Content.ReadAsStringAsync().Result;
+            // Console.WriteLine(res);
+
+            var token = response.Content.ReadAsAsync<Token>(new[] { new JsonMediaTypeFormatter() }).Result;
+           // Console.WriteLine(r);
+            //foreach(var i in response.Headers)
+            //{
+            //    foreach(var j in i.Value)
+            //        Console.WriteLine(j);
+            //}
             response.EnsureSuccessStatusCode();
+
+
+
+
+            HttpClient client = new HttpClient();
+ 
+
+            client.BaseAddress = new Uri("https://localhost:44340/");
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(
+                new MediaTypeWithQualityHeaderValue("application/json"));
+
+            client.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.AccessToken);
+            var myresponse = await client.GetAsync("api/Account/GetUserTagChats");
+
+            //Write result from protected action
+            Task<string> values = myresponse.Content.ReadAsStringAsync();
+            Console.WriteLine(values.Result);
 
         }
         public static async void F()
