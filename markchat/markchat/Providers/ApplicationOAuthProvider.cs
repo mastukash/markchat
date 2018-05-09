@@ -17,6 +17,7 @@ namespace markchat.Providers
 {
     public class ApplicationOAuthProvider : OAuthAuthorizationServerProvider
     {
+
         private readonly string _publicClientId;
 
         public ApplicationOAuthProvider(string publicClientId)
@@ -31,13 +32,21 @@ namespace markchat.Providers
 
         public override async Task GrantResourceOwnerCredentials(OAuthGrantResourceOwnerCredentialsContext context)
         {
+
             var userManager = context.OwinContext.GetUserManager<ApplicationUserManager>();
 
             ApplicationUser user = await userManager.FindAsync(context.UserName, context.Password);
 
             if (user == null)
             {
-                context.SetError("invalid_grant", "The user name or password is incorrect.");
+                context.SetError("invalid_grant", "The user not found.");
+                return;
+            }
+
+
+            if (userManager.PasswordHasher.VerifyHashedPassword(user.PasswordHash, context.Password) == PasswordVerificationResult.Failed)
+            {
+                context.SetError("invalid_grant", "The password is incorrect.");
                 return;
             }
 
@@ -54,6 +63,15 @@ namespace markchat.Providers
 
         public override Task TokenEndpoint(OAuthTokenEndpointContext context)
         {
+            string issued = DateTime.Parse(context.Properties.Dictionary[".issued"]).ToString("o");
+            string expires = DateTime.Parse(context.Properties.Dictionary[".expires"]).ToString("o");
+
+            context.Properties.Dictionary.Remove(".issued");
+            context.Properties.Dictionary.Remove(".expires");
+
+            context.Properties.Dictionary.Add("issued", issued);
+            context.Properties.Dictionary.Add("expires", expires);
+
             foreach (KeyValuePair<string, string> property in context.Properties.Dictionary)
             {
                 context.AdditionalResponseParameters.Add(property.Key, property.Value);

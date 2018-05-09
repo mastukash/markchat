@@ -521,9 +521,9 @@ namespace markchat.Controllers
             user.EmailConfirmed = false;
 
             string code = await UserManager.GenerateEmailConfirmationTokenAsync(user.Id);
-            var callbackUrl = Url.Link("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: Request.Url.Scheme);
+            var callbackUrl = Url.Link("ConfirmEmail", new { userId = user.Id, code = code });
             await UserManager.SendEmailAsync(user.Id, "Confirm your account", "Please confirm your account by clicking <a href=\"" + callbackUrl + "\">here</a>");
-
+            
 
 
 
