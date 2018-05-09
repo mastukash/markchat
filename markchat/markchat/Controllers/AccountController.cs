@@ -38,8 +38,9 @@ namespace markchat.Controllers
         #region ChatTagAPI
 
         [HttpPost]
+        [Route("GetLastMessages")]
         //returns last 20 chat messages 
-        public async Task<HttpResponseMessage> GetLastMessages(int tagChatId)
+        public async Task<HttpResponseMessage> GetLastMessages([FromBody]int TagChatId)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
 
@@ -48,7 +49,7 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
             }
 
-            var tagChat = await repository.Repository<TagChat>().FindByIdAsync(tagChatId);
+            var tagChat = await repository.Repository<TagChat>().FindByIdAsync(TagChatId);
 
             if(!tagChat.Users.Contains(user))
             {
@@ -91,6 +92,7 @@ namespace markchat.Controllers
         }
 
         [HttpGet]
+        [Route("GetUserTagChats")]
         public async Task<HttpResponseMessage> GetUserTagChats()
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());    
@@ -110,7 +112,155 @@ namespace markchat.Controllers
             return responce;
         }
 
-        #endregion
+        [HttpPost]
+        [Route("AddNotification")]
+        public async Task<HttpResponseMessage> AddNotification(AddNotificationBindingModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null || model == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+
+            TagChat chat = await repository.Repository<TagChat>().FindByIdAsync(model.IdChat);
+            Category category = await repository.Repository<Category>().FindByIdAsync(model.IdCategory);
+            Currency currency = await repository.Repository<Currency>().FindByIdAsync(model.IdCurrency);
+
+            if (chat == null || category == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Category doesn't exists");
+            }
+
+            repository.Repository<Notification>().Add(new Notification()
+            {
+                Author= user,
+                PublicationDate = DateTime.Now,
+                Category = category,
+                Price = model.Price,
+                Description = model.Description,
+                Currency = currency,
+                TagChat = chat
+            });
+
+            await repository.SaveAsync();
+
+            return Request.CreateResponse(HttpStatusCode.OK);
+        }
+
+        [HttpPost]
+        [Route("FindNotifications")]
+        public async Task<HttpResponseMessage> FindNotifications(FindNotificationBindingModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null || model == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+
+            Category category = await repository.Repository<Category>().FindByIdAsync(model.LastCategoryId);
+
+            if (category == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Category doesn't exists");
+            }
+
+            List<Notification> messages = new List<Notification>();
+                        
+            Action<Category> search = null;
+            search = delegate (Category c)
+            {
+                c.Notifications.ForEach(y => messages.Add(y));
+
+                if (c.ChildCategories.Count > 0)
+                    c.ChildCategories.ForEach(x => search(x));
+            };
+
+            search(category);
+
+            var responceModel = messages.Select(x =>
+            {
+                var tmp = new TagChatMessageModel()
+                {
+                    Id = x.Id,
+                    AuthorFullName = x.Author?.FullName,
+                    //AuthorFullName = x.Author?.FirstName + " " + x.Author?.LastName,
+                    AuthorPhoto = x.Author?.PhotoName,
+                    Currency = x.Currency?.Symbol.ToString(),
+                    AuthorPhone = x.Author?.PhoneNumber,
+                    Description = x.Description,
+                    Price = x.Price,
+                    PublicationDate = x.PublicationDate,
+                    Tags = new Stack<string>()
+                };
+                var messagecategory = x.Category;
+
+                while (messagecategory != null)
+                {
+                    tmp.Tags.Push(messagecategory.Name);
+                    messagecategory = messagecategory.ParentCategory;
+                }
+                return tmp;
+            }
+           ).ToList();
+
+            return Request.CreateResponse(HttpStatusCode.OK, responceModel);
+        }
+
+        [HttpPost]
+        [Route("GetRootCategories")]
+        public async Task<HttpResponseMessage> GetRootCategories([FromBody] int TagChatId)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null || TagChatId == 0)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+
+            TagChat chat = await repository.Repository<TagChat>().FindByIdAsync(TagChatId);
+
+            if (chat == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
+            }
+
+
+            Dictionary<int, string> childCategories = new Dictionary<int, string>();
+            chat.RootCategory.ChildCategories.ForEach(x => childCategories.Add(x.Id, x.Name));
+
+
+            var responce = Request.CreateResponse<Dictionary<int, string>>(HttpStatusCode.OK, childCategories);
+
+            return responce;
+        }
+
+        [HttpPost]
+        [Route("GetChildCategoriesById")]
+        public async Task<HttpResponseMessage> GetChildCategoriesById([FromBody] int ParentCategoryId)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null || ParentCategoryId == 0)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+
+            Category category = await repository.Repository<Category>().FindByIdAsync(ParentCategoryId);
+
+            if (category == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Category doesn't exists");
+            }
+
+
+            Dictionary<int, string> childCategories = new Dictionary<int, string>();
+            category.ChildCategories.ForEach(x => childCategories.Add(x.Id, x.Name));
+
+
+            var responce = Request.CreateResponse<Dictionary<int, string>>(HttpStatusCode.OK, childCategories);
+
+            return responce;
+        }
+
+        #endregion  
 
 
         #region Registry
@@ -118,11 +268,28 @@ namespace markchat.Controllers
         [HttpPost]
         [Route("GetVerificationCode")]
         [AllowAnonymous]
-        public async Task<IHttpActionResult> GetVerificationCode([FromBody]string phoneNumber)
+        public async Task<IHttpActionResult> GetVerificationCode(GetVerificationCodeBindingModel model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
+            }
+
+            var checkExisting = (await repository.Repository<ApplicationUser>().
+                FindAllAsync(x => x.PhoneNumber == model.PhoneNumber)).FirstOrDefault();
+
+            if (checkExisting != null)
+            {
+                return BadRequest("This number already exists");
+            }
+
+            var checkStatedRegistry = (await repository.Repository<Confirmation>()
+                .FindAllAsync(x => x.PhoneNumber == model.PhoneNumber)).FirstOrDefault();
+
+            if(checkStatedRegistry != null)
+            {
+                repository.Repository<Confirmation>().Remove(checkStatedRegistry);
+                await repository.SaveAsync();
             }
 
             Random rand = new Random();
@@ -132,10 +299,9 @@ namespace markchat.Controllers
             {
                 var message = new IdentityMessage
                 {
-                    Destination = phoneNumber,
+                    Destination = model.PhoneNumber,
                     Body = "Your security code is: " + code
-                };
-                // Send token
+                };               
                 await UserManager.SmsService.SendAsync(message);
             }
          
@@ -144,7 +310,7 @@ namespace markchat.Controllers
 
             Confirmation confirmationCode = new Confirmation()
             {
-                PhoneNumber = phoneNumber,
+                PhoneNumber = model.PhoneNumber,
                 Code = code.ToString(),
                 Date = DateTime.Now,
                 Token = token, 
@@ -177,13 +343,34 @@ namespace markchat.Controllers
                 return BadRequest("Invalid Token");
             }
 
-            if (confirmationCode.Code != model.Code)
+            if(confirmationCode.Confirmed == true)
             {
-                return BadRequest("Invalid confirmation code");
+                return BadRequest("Phone number already confirmed");
             }
 
+
+            if (confirmationCode.TryCount == 3)
+            {
+                return BadRequest("Exceeded limit of attempts");
+            }
+           
+            if (confirmationCode.TryCount > 0)
+            {
+                if ((DateTime.Now - confirmationCode.LastTry).TotalSeconds < 60)
+                    return BadRequest($"Please wait {60 - (DateTime.Now - confirmationCode.LastTry).TotalSeconds} seconds");
+            }
+
+            if (confirmationCode.Code != model.Code)
+            {
+                confirmationCode.LastTry = DateTime.Now;
+                confirmationCode.TryCount++;
+                await repository.SaveAsync();
+                return BadRequest("Code is not correct");
+            }
+
+
             confirmationCode.Confirmed = true;
-            
+
             await repository.SaveAsync();
 
             return Ok(new { Token = confirmationCode.Token });
@@ -212,7 +399,7 @@ namespace markchat.Controllers
             var user = new ApplicationUser()
             {
                 UserName = confirmedPhone.PhoneNumber,
-                //Email = model.Email,
+                //Email = confirmedPhone.PhoneNumber+"@qwer.com",
                 //FirstName = model.FirstName,
                 //MiddleName = model.MiddleName,
                 //LastName = model.LastName,
@@ -221,6 +408,9 @@ namespace markchat.Controllers
                 //PhotoName = model.PhotoName
 
             };
+
+
+            
 
             //if (model.File != null && model.PhotoName != null)
             //{
@@ -296,6 +486,87 @@ namespace markchat.Controllers
 
             return Ok(new { Token = confirmedPhone.Token });
         }
+
+
+        [HttpPost]
+        [Route("ChangeFullName")]
+        public async Task<HttpResponseMessage> ChangeFullName([FromBody] string FullName)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+
+            user.FullName = FullName;
+
+            await repository.SaveAsync();
+
+            return Request.CreateResponse(HttpStatusCode.OK,"FullName changed");
+        }
+
+        [HttpPost]
+        [Route("ChangeEmail")]
+        public async Task<HttpResponseMessage> ChangeEmail([FromBody] string Email)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+
+            user.Email = Email;
+            user.EmailConfirmed = false;
+
+            string code = await UserManager.GenerateEmailConfirmationTokenAsync(user.Id);
+            var callbackUrl = Url.Link("ConfirmEmail", new { userId = user.Id, code = code });
+            await UserManager.SendEmailAsync(user.Id, "Confirm your account", "Please confirm your account by clicking <a href=\"" + callbackUrl + "\">here</a>");
+            
+
+
+
+            await repository.SaveAsync();
+
+            return Request.CreateResponse(HttpStatusCode.OK, "Email changed. Please confirm it.");
+        }
+
+        [HttpPost]
+        [Route("ChangePhoto")]
+        public async Task<HttpResponseMessage> ChangePhoto([FromBody] string PhotoName,[FromBody] byte[] File)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+
+
+            if (File != null && PhotoName != null)
+            {
+                user.PhotoName = PhotoName;
+                byte[] fileData = File;
+                if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Id}")))
+                    Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Id}"));
+                //Compressor c = new Compressor();
+                //fileData = c.Wrap(fileData);
+                System.IO.File.WriteAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
+                            $"~/Images/UserPhotos/{user.Id}/"), PhotoName
+                            ), fileData);
+
+                await repository.SaveAsync();
+
+                return Request.CreateResponse(HttpStatusCode.OK, "Photo changed.");
+
+            }
+
+
+            return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Invalide data");
+
+        }
+
 
         #endregion
 
@@ -604,17 +875,47 @@ namespace markchat.Controllers
                 return this.BadRequest("Invalid user data");
             }
 
+            var user = UserManager.FindAsync(model.Username, model.Password).Result;
+            var dbUser = (await repository.Repository<ApplicationUser>()
+                .FindAllAsync(x => x.UserName == model.Username)).FirstOrDefault();
+            if (user == null )
+            {
+               
+                if (dbUser!= null && dbUser?.AccessFailedCount == 3)
+                {
+                    return BadRequest("Exceeded limit of attempts");
+                }
+
+                if (dbUser.LastSecurityCodeSendDate == null)
+                    dbUser.LastSecurityCodeSendDate = DateTime.Now.AddDays(-1);
+
+
+                if ((DateTime.Now - dbUser.LastSecurityCodeSendDate.Value).TotalSeconds < 60)
+                        return BadRequest($"Please wait {60 - (DateTime.Now - dbUser.LastSecurityCodeSendDate.Value).TotalSeconds} seconds to next attempt.");
+
+
+                
+                dbUser.AccessFailedCount++;
+                dbUser.LastSecurityCodeSendDate = DateTime.Now;
+                await repository.SaveAsync();
+
+                return BadRequest("The user name or password is incorrect");
+
+            }
+            
+
             // Invoke the "token" OWIN service to perform the login (POST /token)
             var testServer = TestServer.Create<Startup>();
             var requestParams = new List<KeyValuePair<string, string>>
-    {
+            {
         new KeyValuePair<string, string>("grant_type", "password"),
         new KeyValuePair<string, string>("username", model.Username),
         new KeyValuePair<string, string>("password", model.Password)
-    };
+            };
             var requestParamsFormUrlEncoded = new FormUrlEncodedContent(requestParams);
             var tokenServiceResponse = await testServer.HttpClient.PostAsync(
                 "/Token", requestParamsFormUrlEncoded);
+
             return this.ResponseMessage(tokenServiceResponse);
         }
 
@@ -909,5 +1210,5 @@ namespace markchat.Controllers
         #endregion
     }
 
-   
+    
 }
