@@ -14,10 +14,40 @@ using Twilio.Types;
 using Twilio.Rest.Api.V2010.Account;
 using System.Security.Claims;
 using Microsoft.Owin.Security;
+using System.Net.Mail;
 
 namespace markchat
 {
     // Configure the application user manager used in this application. UserManager is defined in ASP.NET Identity and is used by the application.
+
+    public class EmailService : IIdentityMessageService
+    {
+        public Task SendAsync(IdentityMessage message)
+        {
+            // настройка логина, пароля отправителя
+            var from = "BrilliantNational@gmail.com";
+            var pass = "fion@5p!QAZ";
+
+            // адрес и порт smtp-сервера, с которого мы и будем отправлять письмо
+            SmtpClient client = new SmtpClient("smtp.gmail.com", 587)
+            {
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                UseDefaultCredentials = false,
+                Credentials = new System.Net.NetworkCredential(from, pass),
+                EnableSsl = true
+            };
+
+            // создаем письмо: message.Destination - адрес получателя
+            var mail = new MailMessage(from, message.Destination)
+            {
+                Subject = message.Subject,
+                Body = message.Body,
+                IsBodyHtml = true
+            };
+            return client.SendMailAsync(mail);
+        }
+    }
+
 
     public class SmsService : IIdentityMessageService
     {
@@ -47,16 +77,16 @@ namespace markchat
             manager.UserValidator = new UserValidator<ApplicationUser>(manager)
             {
                 AllowOnlyAlphanumericUserNames = false,
-                RequireUniqueEmail = true
+                RequireUniqueEmail = false
             };
             // Configure validation logic for passwords
             manager.PasswordValidator = new PasswordValidator
             {
-                RequiredLength = 6,
-                RequireNonLetterOrDigit = true,
-                RequireDigit = true,
-                RequireLowercase = true,
-                RequireUppercase = true,
+                RequiredLength = 8
+                //RequireNonLetterOrDigit = true,
+                //RequireDigit = true,
+                //RequireLowercase = true,
+                //RequireUppercase = true,
             };
             manager.SmsService = new SmsService();
 

@@ -14,5 +14,7 @@ namespace MarkChat.DAL.Entities
         public DateTime Date { get; set; }
         public string Token { get; set; }
         public bool Confirmed { get; set; } = false;
+        public int TryCount { get; set; } = 0;
+        public DateTime LastTry { get; set; } = DateTime.Now;
     }
 }
