@@ -118,7 +118,7 @@ namespace markchat.Controllers
         [HttpPost]
         [Route("GetVerificationCode")]
         [AllowAnonymous]
-        public async Task<IHttpActionResult> GetVerificationCode(string phoneNumber)
+        public async Task<IHttpActionResult> GetVerificationCode([FromBody]string phoneNumber)
         {
             if (!ModelState.IsValid)
             {
