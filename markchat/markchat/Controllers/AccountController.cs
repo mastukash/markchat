@@ -24,6 +24,7 @@ using MarkChat.DAL.Entities;
 using System.Net;
 using MarkChat.DAL.Repository;
 using Microsoft.Owin.Testing;
+using System.Text;
 
 namespace markchat.Controllers
 {
@@ -399,7 +400,7 @@ namespace markchat.Controllers
             var user = new ApplicationUser()
             {
                 UserName = confirmedPhone.PhoneNumber,
-                //Email = confirmedPhone.PhoneNumber+"@qwer.com",
+                Email = confirmedPhone.PhoneNumber+"@qwer.com",
                 //FirstName = model.FirstName,
                 //MiddleName = model.MiddleName,
                 //LastName = model.LastName,
@@ -902,21 +903,46 @@ namespace markchat.Controllers
                 return BadRequest("The user name or password is incorrect");
 
             }
-            
+
+
+
+            // Invoke the "token" OWIN service to perform the login: /api/token
+            // Ugly hack: I use a server-side HTTP POST because I cannot directly invoke the service (it is deeply hidden in the OAuthAuthorizationServerHandler class)
+            var request = HttpContext.Current.Request;
+            var tokenServiceUrl = request.Url.GetLeftPart(UriPartial.Authority) + request.ApplicationPath + "Token";
+            using (var client = new HttpClient())
+            {
+                var requestParams = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("grant_type", "password"),
+                new KeyValuePair<string, string>("username", model.Username),
+                new KeyValuePair<string, string>("password", model.Password)
+            };
+                var requestParamsFormUrlEncoded = new FormUrlEncodedContent(requestParams);
+                var tokenServiceResponse = await client.PostAsync(tokenServiceUrl, requestParamsFormUrlEncoded);
+                //var responseString = await tokenServiceResponse.Content.ReadAsStringAsync();
+                //var responseCode = tokenServiceResponse.StatusCode;
+                //var responseMsg = new HttpResponseMessage(responseCode)
+                //{
+                //    Content = new StringContent(responseString, Encoding.UTF8, "application/json")
+                //};
+                return this.ResponseMessage(tokenServiceResponse);
+            }
+
 
             // Invoke the "token" OWIN service to perform the login (POST /token)
-            var testServer = TestServer.Create<Startup>();
-            var requestParams = new List<KeyValuePair<string, string>>
-            {
-        new KeyValuePair<string, string>("grant_type", "password"),
-        new KeyValuePair<string, string>("username", model.Username),
-        new KeyValuePair<string, string>("password", model.Password)
-            };
-            var requestParamsFormUrlEncoded = new FormUrlEncodedContent(requestParams);
-            var tokenServiceResponse = await testServer.HttpClient.PostAsync(
-                "/Token", requestParamsFormUrlEncoded);
+            //    var testServer = TestServer.Create<Startup>();
+            //    var requestParams = new List<KeyValuePair<string, string>>
+            //    {
+            //new KeyValuePair<string, string>("grant_type", "password"),
+            //new KeyValuePair<string, string>("username", model.Username),
+            //new KeyValuePair<string, string>("password", model.Password)
+            //    };
+            //    var requestParamsFormUrlEncoded = new FormUrlEncodedContent(requestParams);
+            //    var tokenServiceResponse = await testServer.HttpClient.PostAsync(
+            //        "/Token", requestParamsFormUrlEncoded);
 
-            return this.ResponseMessage(tokenServiceResponse);
+            //    return this.ResponseMessage(tokenServiceResponse);
         }
 
         //// POST api/Account/Register

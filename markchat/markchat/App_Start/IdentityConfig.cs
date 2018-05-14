@@ -77,16 +77,16 @@ namespace markchat
             manager.UserValidator = new UserValidator<ApplicationUser>(manager)
             {
                 AllowOnlyAlphanumericUserNames = false,
-                RequireUniqueEmail = false
+                RequireUniqueEmail = true
             };
             // Configure validation logic for passwords
             manager.PasswordValidator = new PasswordValidator
             {
-                RequiredLength = 8
-                //RequireNonLetterOrDigit = true,
-                //RequireDigit = true,
-                //RequireLowercase = true,
-                //RequireUppercase = true,
+                RequiredLength = 8,
+                RequireNonLetterOrDigit = true,
+                RequireDigit = true,
+                RequireLowercase = true,
+                RequireUppercase = true,
             };
             manager.SmsService = new SmsService();
 
