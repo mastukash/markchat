@@ -11,7 +11,22 @@ namespace markchat.Models
         public string Code { get; set; }
     }
 
+    public class ConfirmEmailModel
+    {
+        public string Code { get; set; }
+    }
 
+    public class ChangeFullNameModel
+    {
+        public string FullName { get; set; }
+    }
+
+
+    public class ChangePhotoModel
+    {
+        public string PhotoName { get; set; }
+        public byte[] File { get; set; }
+    }
 
     // Models returned by AccountController actions.
 

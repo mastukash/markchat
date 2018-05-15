@@ -400,34 +400,9 @@ namespace markchat.Controllers
             var user = new ApplicationUser()
             {
                 UserName = confirmedPhone.PhoneNumber,
-                Email = confirmedPhone.PhoneNumber+"@qwer.com",
-                //FirstName = model.FirstName,
-                //MiddleName = model.MiddleName,
-                //LastName = model.LastName,
                 PhoneNumber = confirmedPhone.PhoneNumber,
                 PhoneNumberConfirmed = confirmedPhone.Confirmed,
-                //PhotoName = model.PhotoName
-
             };
-
-
-            
-
-            //if (model.File != null && model.PhotoName != null)
-            //{
-            //    user.PhotoName = model.PhotoName;
-            //    byte[] fileData = model.File;
-            //    if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Email}")))
-            //        Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Email}"));
-            //    //Compressor c = new Compressor();
-            //    //fileData = c.Wrap(fileData);
-            //    System.IO.File.WriteAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-            //                $"~/Images/UserPhotos/{user.Email}/"), model.PhotoName
-            //                ), fileData);
-
-            //}
-
-
 
             IdentityResult result = await UserManager.CreateAsync(user, model.Password);
 
@@ -436,14 +411,34 @@ namespace markchat.Controllers
                 return GetErrorResult(result);
             }
 
+
+
+
+            await repository.Repository<Confirmation>().RemoveAsync(confirmedPhone);
+
+
             await repository.SaveAsync();
 
-            return Ok(new { Token = confirmedPhone.Token});
+
+            var request = HttpContext.Current.Request;
+            var tokenServiceUrl = request.Url.GetLeftPart(UriPartial.Authority) + request.ApplicationPath + "Token";
+            using (var client = new HttpClient())
+            {
+                var requestParams = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("grant_type", "password"),
+                new KeyValuePair<string, string>("username", user.UserName),
+                new KeyValuePair<string, string>("password", model.Password)
+            };
+                var requestParamsFormUrlEncoded = new FormUrlEncodedContent(requestParams);
+                var tokenServiceResponse = await client.PostAsync(tokenServiceUrl, requestParamsFormUrlEncoded);
+                return this.ResponseMessage(tokenServiceResponse);
+
+            }
         }
 
 
         [HttpPost]
-        [AllowAnonymous]
         [Route("ConfigurateUserCabinet")]
         public async Task<IHttpActionResult> ConfigurateUserCabinet(CabinetUserBindingModel model)
         {
@@ -451,21 +446,29 @@ namespace markchat.Controllers
             {
                 return BadRequest(ModelState);
             }
-
-            Confirmation confirmedPhone = (await repository.Repository<Confirmation>()
-                .FindAllAsync(item => item.Token == model.Token)).FirstOrDefault();
-
-            if (confirmedPhone == null)
-            {
-                return BadRequest("Invalid Token");
-            }
-
-            var user = (await repository.Repository<ApplicationUser>().FindAllAsync(x => x.PhoneNumber == confirmedPhone.PhoneNumber)).FirstOrDefault();
+            
+            
+            var user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
 
             user.FullName = model.FullName;
 
-            user.Email = model.Email;
-            
+            if (model.Email != "" || model.Email != null)
+            {
+                user.Email = model.Email;
+                await repository.SaveAsync();
+                try
+                {
+                    string code = await UserManager.GenerateEmailConfirmationTokenAsync(user.Id);
+                    await UserManager.SendEmailAsync(user.Id, "Confirm your account", $"For confirmation please enter security code in application.</br>Security code : {code}");
+
+                }
+                catch
+                {
+                    return BadRequest("Invalid Email");
+                }
+            }
+
+
             if (model.File != null && model.PhotoName != null)
             {
                 user.PhotoName = model.PhotoName;
@@ -480,18 +483,17 @@ namespace markchat.Controllers
 
             }
 
-            await repository.Repository<Confirmation>().RemoveAsync(confirmedPhone);
           
 
             await repository.SaveAsync();
 
-            return Ok(new { Token = confirmedPhone.Token });
+            return Ok();
         }
 
 
         [HttpPost]
         [Route("ChangeFullName")]
-        public async Task<HttpResponseMessage> ChangeFullName([FromBody] string FullName)
+        public async Task<HttpResponseMessage> ChangeFullName(ChangeFullNameModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
 
@@ -500,7 +502,7 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
             }
 
-            user.FullName = FullName;
+            user.FullName = model.FullName;
 
             await repository.SaveAsync();
 
@@ -509,7 +511,7 @@ namespace markchat.Controllers
 
         [HttpPost]
         [Route("ChangeEmail")]
-        public async Task<HttpResponseMessage> ChangeEmail([FromBody] string Email)
+        public async Task<HttpResponseMessage> ChangeEmail(ChangeEmailModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
 
@@ -518,24 +520,53 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
             }
 
-            user.Email = Email;
+            user.Email = model.Email;
             user.EmailConfirmed = false;
 
-            string code = await UserManager.GenerateEmailConfirmationTokenAsync(user.Id);
-            var callbackUrl = Url.Link("ConfirmEmail", new { userId = user.Id, code = code });
-            await UserManager.SendEmailAsync(user.Id, "Confirm your account", "Please confirm your account by clicking <a href=\"" + callbackUrl + "\">here</a>");
-            
+            if (model.Email != "" || model.Email != null)
+            {
+                user.Email = model.Email;
+                await repository.SaveAsync();
+                try
+                {
+                    string code = await UserManager.GenerateEmailConfirmationTokenAsync(user.Id);
+                     await UserManager.SendEmailAsync(user.Id, "Confirm your account", $"For confirmation please enter security code in application.</br>Security code : {code}");
 
+                }
+                catch
+                {
+                    return Request.CreateResponse(HttpStatusCode.BadRequest,"Invalid Email");
+                }   
+            }
 
 
             await repository.SaveAsync();
 
             return Request.CreateResponse(HttpStatusCode.OK, "Email changed. Please confirm it.");
         }
+        
+        [HttpPost]
+        [Route("ConfirmEmail")]
+        public async Task<HttpResponseMessage> ConfirmEmail([FromBody]ConfirmEmailModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+
+            if(user.EmailConfirmed)
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest,"Your email already confirmed");
+            }
+
+            if (model.Code == null)
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest,"Bad Request");
+            }
+            var result = await UserManager.ConfirmEmailAsync(user.Id, model.Code);
+            return Request.CreateResponse(HttpStatusCode.OK,result.Succeeded ? "ConfirmEmail" : "Error");
+        }
 
         [HttpPost]
         [Route("ChangePhoto")]
-        public async Task<HttpResponseMessage> ChangePhoto([FromBody] string PhotoName,[FromBody] byte[] File)
+        public async Task<HttpResponseMessage> ChangePhoto(ChangePhotoModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
 
@@ -545,16 +576,16 @@ namespace markchat.Controllers
             }
 
 
-            if (File != null && PhotoName != null)
+            if (model.File != null && model.PhotoName != null)
             {
-                user.PhotoName = PhotoName;
-                byte[] fileData = File;
+                user.PhotoName = model.PhotoName;
+                byte[] fileData = model.File;
                 if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Id}")))
                     Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Id}"));
                 //Compressor c = new Compressor();
                 //fileData = c.Wrap(fileData);
                 System.IO.File.WriteAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/Images/UserPhotos/{user.Id}/"), PhotoName
+                            $"~/Images/UserPhotos/{user.Id}/"), model.PhotoName
                             ), fileData);
 
                 await repository.SaveAsync();
@@ -904,10 +935,6 @@ namespace markchat.Controllers
 
             }
 
-
-
-            // Invoke the "token" OWIN service to perform the login: /api/token
-            // Ugly hack: I use a server-side HTTP POST because I cannot directly invoke the service (it is deeply hidden in the OAuthAuthorizationServerHandler class)
             var request = HttpContext.Current.Request;
             var tokenServiceUrl = request.Url.GetLeftPart(UriPartial.Authority) + request.ApplicationPath + "Token";
             using (var client = new HttpClient())
@@ -920,29 +947,8 @@ namespace markchat.Controllers
             };
                 var requestParamsFormUrlEncoded = new FormUrlEncodedContent(requestParams);
                 var tokenServiceResponse = await client.PostAsync(tokenServiceUrl, requestParamsFormUrlEncoded);
-                //var responseString = await tokenServiceResponse.Content.ReadAsStringAsync();
-                //var responseCode = tokenServiceResponse.StatusCode;
-                //var responseMsg = new HttpResponseMessage(responseCode)
-                //{
-                //    Content = new StringContent(responseString, Encoding.UTF8, "application/json")
-                //};
                 return this.ResponseMessage(tokenServiceResponse);
             }
-
-
-            // Invoke the "token" OWIN service to perform the login (POST /token)
-            //    var testServer = TestServer.Create<Startup>();
-            //    var requestParams = new List<KeyValuePair<string, string>>
-            //    {
-            //new KeyValuePair<string, string>("grant_type", "password"),
-            //new KeyValuePair<string, string>("username", model.Username),
-            //new KeyValuePair<string, string>("password", model.Password)
-            //    };
-            //    var requestParamsFormUrlEncoded = new FormUrlEncodedContent(requestParams);
-            //    var tokenServiceResponse = await testServer.HttpClient.PostAsync(
-            //        "/Token", requestParamsFormUrlEncoded);
-
-            //    return this.ResponseMessage(tokenServiceResponse);
         }
 
         //// POST api/Account/Register
@@ -1111,9 +1117,7 @@ namespace markchat.Controllers
                 return Ok(new { Message = "AddPhoneSuccess" });
             }
             ModelState.AddModelError("", "Failed to verify phone");
-            return Ok(model);
-
-           
+            return Ok(model);     
         }
        
 
@@ -1236,5 +1240,8 @@ namespace markchat.Controllers
         #endregion
     }
 
-    
+    public class ChangeEmailModel
+    {
+        public string Email { get; set; }
+    }
 }
