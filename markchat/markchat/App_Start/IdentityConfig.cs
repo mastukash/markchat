@@ -25,7 +25,10 @@ namespace markchat
         public Task SendAsync(IdentityMessage message)
         {
             // настройка логина, пароля отправителя
-            var from = "BrilliantNational@gmail.com";
+            //var from = "BrilliantNational@gmail.com";
+            //var pass = "fion@5p!QAZ";
+
+            var from = "autosdem@gmail.com";
             var pass = "fion@5p!QAZ";
 
             // адрес и порт smtp-сервера, с которого мы и будем отправлять письмо
@@ -88,7 +91,9 @@ namespace markchat
                 //RequireLowercase = true,
                 //RequireUppercase = true,
             };
+            
             manager.SmsService = new SmsService();
+            manager.EmailService = new EmailService();
 
             var dataProtectionProvider = options.DataProtectionProvider;
             if (dataProtectionProvider != null)

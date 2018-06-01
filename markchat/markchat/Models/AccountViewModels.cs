@@ -3,7 +3,20 @@ using System.Collections.Generic;
 
 namespace markchat.Models
 {
+    public class GetLastMessagesModel
+    {
+        public int TagChatId { get; set; }
+    }
 
+    public class GetRootCategoriesModel
+    {
+        public int TagChatId { get; set; }
+    }
+
+    public class GetChildCategoriesById
+    {
+        public int ParentCategoryId { get; set; }
+    }
 
     public class PhoneConfirnationModel
     {
@@ -11,7 +24,22 @@ namespace markchat.Models
         public string Code { get; set; }
     }
 
+    public class ConfirmEmailModel
+    {
+        public string Code { get; set; }
+    }
 
+    public class ChangeFullNameModel
+    {
+        public string FullName { get; set; }
+    }
+
+
+    public class ChangePhotoModel
+    {
+        public string PhotoName { get; set; }
+        public byte[] File { get; set; }
+    }
 
     // Models returned by AccountController actions.
 
