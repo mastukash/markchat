@@ -3,7 +3,20 @@ using System.Collections.Generic;
 
 namespace markchat.Models
 {
+    public class GetLastMessagesModel
+    {
+        public int TagChatId { get; set; }
+    }
 
+    public class GetRootCategoriesModel
+    {
+        public int TagChatId { get; set; }
+    }
+
+    public class GetChildCategoriesById
+    {
+        public int ParentCategoryId { get; set; }
+    }
 
     public class PhoneConfirnationModel
     {

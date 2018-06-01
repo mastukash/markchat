@@ -40,8 +40,9 @@ namespace markchat.Controllers
 
         [HttpPost]
         [Route("GetLastMessages")]
-        //returns last 20 chat messages 
-        public async Task<HttpResponseMessage> GetLastMessages([FromBody]int TagChatId)
+        //returns last 10 chat messages 
+        public async Task<HttpResponseMessage> GetLastMessages(GetLastMessagesModel model)
+
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
 
@@ -50,14 +51,14 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
             }
 
-            var tagChat = await repository.Repository<TagChat>().FindByIdAsync(TagChatId);
+            var tagChat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
 
             if(!tagChat.Users.Contains(user))
             {
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "You are not chat member");
             }
 
-            var dbNotifications = tagChat.Messages.OrderByDescending(x => x.PublicationDate).Take(20);
+            var dbNotifications = tagChat.Messages.OrderByDescending(x => x.PublicationDate).Take(10);
 
             var responceModel = dbNotifications.Select(x =>
             {
@@ -65,7 +66,6 @@ namespace markchat.Controllers
                 {
                     Id = x.Id,
                     AuthorFullName = x.Author?.FullName,
-                    //AuthorFullName = x.Author?.FirstName + " " + x.Author?.LastName,
                     AuthorPhoto = x.Author?.PhotoName,
                     Currency = x.Currency?.Symbol.ToString(),
                     AuthorPhone = x.Author?.PhoneNumber,
@@ -105,7 +105,7 @@ namespace markchat.Controllers
 
             Dictionary<int, string> chats = new Dictionary<int, string>();
 
-            (await repository.Repository<TagChat>().FindAllAsync(x => x.Users.Contains(user))).ToList()
+            (await repository.Repository<TagChat>().FindAllAsync(x => x.Users.Select(y=>y.Id).Contains(user.Id))).ToList()
                 .ForEach(x=> chats.Add(x.Id, x.Name));
 
             var responce = Request.CreateResponse<Dictionary<int, string>>(HttpStatusCode.OK, chats);
@@ -184,7 +184,6 @@ namespace markchat.Controllers
                 {
                     Id = x.Id,
                     AuthorFullName = x.Author?.FullName,
-                    //AuthorFullName = x.Author?.FirstName + " " + x.Author?.LastName,
                     AuthorPhoto = x.Author?.PhotoName,
                     Currency = x.Currency?.Symbol.ToString(),
                     AuthorPhone = x.Author?.PhoneNumber,
@@ -209,15 +208,15 @@ namespace markchat.Controllers
 
         [HttpPost]
         [Route("GetRootCategories")]
-        public async Task<HttpResponseMessage> GetRootCategories([FromBody] int TagChatId)
+        public async Task<HttpResponseMessage> GetRootCategories(GetRootCategoriesModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
-            if (user == null || TagChatId == 0)
+            if (user == null || model.TagChatId == 0)
             {
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
             }
 
-            TagChat chat = await repository.Repository<TagChat>().FindByIdAsync(TagChatId);
+            TagChat chat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
 
             if (chat == null)
             {
@@ -236,15 +235,15 @@ namespace markchat.Controllers
 
         [HttpPost]
         [Route("GetChildCategoriesById")]
-        public async Task<HttpResponseMessage> GetChildCategoriesById([FromBody] int ParentCategoryId)
+        public async Task<HttpResponseMessage> GetChildCategoriesById(GetChildCategoriesById model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
-            if (user == null || ParentCategoryId == 0)
+            if (user == null || model.ParentCategoryId == 0)
             {
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
             }
 
-            Category category = await repository.Repository<Category>().FindByIdAsync(ParentCategoryId);
+            Category category = await repository.Repository<Category>().FindByIdAsync(model.ParentCategoryId);
 
             if (category == null)
             {
@@ -260,6 +259,74 @@ namespace markchat.Controllers
 
             return responce;
         }
+
+
+        [HttpPost]
+        [Route("CreateTagChat")]
+        public async Task<HttpResponseMessage> CreateTagChat(CreateTagChatModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+            if (model.TagChatName == "")
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat Name cannot be empty");
+            }
+
+
+            string token = RandomOAuthStateGenerator.Generate(64);
+
+            repository.Repository<TagChat>().Add(new TagChat
+            {
+                Name = model.TagChatName,
+                OwnerUser = user,
+                RootCategory = new Category() { Name = "Root", Title = model.TagChatName },
+                InvitationCode = token
+            });
+
+            await repository.SaveAsync();
+                 
+
+            return Request.CreateResponse(HttpStatusCode.OK,"Chat created");
+        }
+
+
+
+        [HttpGet]
+        [Route("GetMemberList")]
+        public async Task<HttpResponseMessage> GetMemberList()
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+            
+
+            Dictionary<string, UserInfo> userList = new Dictionary<string, UserInfo>();
+
+            var users = await repository.Repository<ApplicationUser>().FindAllAsync(x => x.Id != user.Id);
+
+            users.ToList().ForEach(x => userList.Add(x.Id, new UserInfo
+            {
+                FullName = x.FullName == "" ? x.FullName : x.PhoneNumber,
+                PhotoName = x.PhotoName,
+                Photo = File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
+                            $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName))
+            }
+                ));
+           
+
+            var responce = Request.CreateResponse<Dictionary<string, UserInfo>>(HttpStatusCode.OK, userList);
+
+            return responce;
+        }
+
+
+
 
         #endregion  
 
@@ -473,12 +540,12 @@ namespace markchat.Controllers
             {
                 user.PhotoName = model.PhotoName;
                 byte[] fileData = model.File;
-                if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Email}")))
-                    Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Email}"));
+                if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Id}")))
+                    Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Id}"));
                 //Compressor c = new Compressor();
                 //fileData = c.Wrap(fileData);
                 System.IO.File.WriteAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/Images/UserPhotos/{user.Email}/"), model.PhotoName
+                            $"~/Images/UserPhotos/{user.Id}/"), model.PhotoName
                             ), fileData);
 
             }
