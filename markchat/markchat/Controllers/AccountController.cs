@@ -454,6 +454,24 @@ namespace markchat.Controllers
             return Ok(new { Token = confirmationCode.Token });
         }
 
+        [HttpPost]
+        [AllowAnonymous]
+        [Route("DeleteUser")]
+        public async Task<IHttpActionResult> DeleteUser(DeleteUserBindingModel model)
+        {
+            var user = (await repository.Repository<ApplicationUser>().FindAllAsync(x => x.PhoneNumber == model.PhoneNumber)).FirstOrDefault();
+            if (!ModelState.IsValid || user == null)
+            {
+                return BadRequest("Bad Request");
+            }
+
+            await repository.Repository<ApplicationUser>().RemoveAsync(user);
+
+            await repository.SaveAsync();
+
+            return Ok("User Deleted");
+        }
+
 
 
         [HttpPost]
