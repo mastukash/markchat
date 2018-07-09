@@ -123,10 +123,16 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
             }
 
+            
             TagChat chat = await repository.Repository<TagChat>().FindByIdAsync(model.IdChat);
             Category category = await repository.Repository<Category>().FindByIdAsync(model.IdCategory);
             Currency currency = await repository.Repository<Currency>().FindByIdAsync(model.IdCurrency);
 
+            //TODO - перевірки чи користувач чату
+            //if (chat.)
+            //{
+
+            //}
             if (chat == null || category == null)
             {
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Category doesn't exists");
@@ -152,6 +158,8 @@ namespace markchat.Controllers
         [Route("FindNotifications")]
         public async Task<HttpResponseMessage> FindNotifications(FindNotificationBindingModel model)
         {
+
+            //TODO добавати пошук по ціновому діапазону!!!!
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null || model == null)
             {

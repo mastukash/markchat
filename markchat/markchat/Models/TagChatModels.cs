@@ -9,6 +9,7 @@ namespace markchat.Models
     public class CreateTagChatModel
     {
         public string TagChatName { get; set; }
+        public string Description { get; set; }
     }
 
     public class UserInfo
