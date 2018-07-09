@@ -12,17 +12,19 @@ namespace MarkChat.DAL
     {
         public int Id { get; set; }
         public string Name { get; set; }
-        public string InvitationCode { get; set; }
 
         public TagChat()
         {
             Users = new List<ApplicationUser>();
         }
 
+        [Index(IsUnique =true)]
+        public int CategoryId { get; set; }
 
         public virtual Category RootCategory { get; set; }
         public virtual ApplicationUser OwnerUser { get; set; }
         public virtual List<Notification> Messages { get; set; }
         public virtual ICollection<ApplicationUser> Users { get; set; }
+        public virtual List<InvRequestToChat> InvRequests { get; set; }
     }
 }
