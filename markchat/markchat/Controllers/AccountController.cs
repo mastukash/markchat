@@ -291,9 +291,7 @@ namespace markchat.Controllers
                 Name = model.TagChatName,
                 OwnerUser = user,
                 RootCategory = new Category() { Name = "Root", Title = model.TagChatName },
-                InvitationCode = token,
-                Description = model.Description
-                
+                //InvitationCode = token
             });
 
             await repository.SaveAsync();

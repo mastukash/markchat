@@ -130,7 +130,12 @@
     <Compile Include="Entities\Confirmation.cs" />
     <Compile Include="Entities\Currency.cs" />
     <Compile Include="Entities\IdentityModels.cs" />
+    <Compile Include="Entities\InvRequest.cs" />
+    <Compile Include="Entities\InvRequestToChat.cs" />
+    <Compile Include="Entities\InvRequestToUser.cs" />
     <Compile Include="Entities\Notification.cs" />
+    <Compile Include="Entities\Template.cs" />
+    <Compile Include="Entities\TemplateCategory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Repository\EFGenericRepository.cs" />
     <Compile Include="Repository\GenericUnitOfWork.cs" />
