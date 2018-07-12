@@ -20,7 +20,6 @@ namespace MarkChat.DAL.Entities
         public virtual List<Category> ChildCategories { get; set; }
 
         public virtual List<Category> ParentCategories { get; set; }
-
         public virtual List<TagChat> ChatRoots { get; set; }
 
         public virtual List<Notification> Notifications { get; set; }
