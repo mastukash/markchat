@@ -89,9 +89,9 @@ namespace MarkChat.DAL.Entities
           .HasRequired<ApplicationUser>(s => s.OwnerUser )
           .WithMany(g => g.OwnerChats).WillCascadeOnDelete(false);
 
-          //  modelBuilder.Entity<TagChat>()
-          //.HasRequired<Category>(s => s.RootCategory)
-          //.WithMany(g => g.ChatRoots).WillCascadeOnDelete(false);
+            //  modelBuilder.Entity<TagChat>()
+            //.HasRequired<Category>(s => s.RootCategory)
+            //.WithMany(g => g.ChatRoots).WillCascadeOnDelete(false);
 
             //modelBuilder.Entity<Category>()
             //       .HasOptional(c => c.ParentCategory)
@@ -100,16 +100,20 @@ namespace MarkChat.DAL.Entities
 
 
 
-        //    modelBuilder.Entity<Category>()
-        //.HasMany(c => c.ParentCategories)
-        //.WithMany(c => c.ChildCategories)
-        //.Map(m =>
-        //{
-        //    m.MapLeftKey("ParentId");
-        //    m.MapRightKey("ChildId");
-        //    m.ToTable("ChildCategories");
-        //});
+            //    modelBuilder.Entity<Category>()
+            //.HasMany(c => c.ParentCategories)
+            //.WithMany(c => c.ChildCategories)
+            //.Map(m =>
+            //{
+            //    m.MapLeftKey("ParentId");
+            //    m.MapRightKey("ChildId");
+            //    m.ToTable("ChildCategories");
+            //});
 
+            modelBuilder.Entity<TagChat>().HasRequired<Category>(t => t.RootCategory).WithRequiredPrincipal(t => t.ChatRoot);
+       //         .HasOne(a => a.)
+       //.WithOne(b => b.Author)
+       //.HasForeignKey<AuthorBiography>(b => b.AuthorRef);
 
         }
 
@@ -120,6 +124,13 @@ namespace MarkChat.DAL.Entities
         public DbSet<Notification> Notifications { get; set; }
 
         public DbSet<Confirmation> Confirmations { get; set; }
+
+        public DbSet<Template> Templates { get; set; }
+        public DbSet<InvRequestToChat> InvRequestToChats { get; set; }
+        public DbSet<InvRequestToUser> InvRequestTousers { get; set; }
+        
+        public DbSet<InvRequest> InvRequests { get; set; }
+
     }
 
 }

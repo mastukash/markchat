@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace MarkChat.DAL.Entities
 {
-    class Template
+    public class Template
     {
         [Key]
         public int IdTemplate { get; set; }
