@@ -219,6 +219,7 @@ namespace markchat.Controllers
             if (invUser != null)
             {
                 invUser.InvRequest.Confirmed = true;
+                invUser.InvRequest.IsWatched = true;
                 await repository.SaveAsync();
             }
             invReq.InvRequest.Confirmed = true;
@@ -252,6 +253,7 @@ namespace markchat.Controllers
             if (invUser != null)
             {
                 invUser.InvRequest.Confirmed = true;
+                invUser.InvRequest.IsWatched = true;
                 await repository.SaveAsync();
             }
             invReq.InvRequest.Confirmed = true;
@@ -260,38 +262,65 @@ namespace markchat.Controllers
             return Request.CreateResponse(HttpStatusCode.OK);
         }
 
+        //------------------mastykash 13.07.2018--begin
         [HttpPost]
-        [Route("AcceptInvitationRequestFromTagChat")]
-        public async Task<HttpResponseMessage> GetAllRequestsToUser(AcceptInvitationRequestModel model)
+        [Route("GetAllNewRequestsFromChatsToUser")]
+        public async Task<HttpResponseMessage> GetAllNewRequestsFromChatsToUser()
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
-            var invReq = await repository.Repository<InvRequestToChat>().FindByIdAsync(model.InvRequestId);
-            if (invReq == null)
-                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Request doesn't exists");
-            var chat = await repository.Repository<TagChat>().FindByIdAsync(invReq.TagChat.Id);
-            if (user.Id != invReq.User.Id)
-                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Wrong request");
-            if (chat == null)
-                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
-            if (chat.OwnerUser.Id != user.Id)
-                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "You don't have permission");
-            if (chat.Users.Where(x => x.Id == user.Id).FirstOrDefault() != null)
-                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User already exists in chat");
-            if (invReq.InvRequest.Confirmed == true)
-                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User already confirmed");
-            var invUser = (await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.TagChat.Id == invReq.TagChat.Id && x.User.Id == user.Id)).FirstOrDefault();
-            if (invUser != null)
-            {
-                invUser.InvRequest.Confirmed = true;
-                await repository.SaveAsync();
-            }
-            invReq.InvRequest.Confirmed = true;
-            chat.Users.Add(invReq.User);
-            await repository.SaveAsync();
-            return Request.CreateResponse(HttpStatusCode.OK);
+            var newRequests = await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.User.Id == user.Id && x.InvRequest.IsWatched == false && x.InvRequest.Confirmed == false);
+            if(newRequests.Count()==0)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "New requests not found");
+            List<NewRequestsFromChatsToUserModel> model = new List<NewRequestsFromChatsToUserModel>();
+            newRequests.ToList().ForEach(item=> model.Add(
+                new NewRequestsFromChatsToUserModel() {
+                    TagChatId = item.TagChat.Id, 
+                    TagChatName = item.TagChat.Name,
+                    OwnerId = item.TagChat.OwnerUser.Id,
+                    OwnerName = item.TagChat.OwnerUser.FullName,
+                    OwnerPhotoName = item.TagChat.OwnerUser.PhotoName,
+                    OwnerPhoneNumber = item.TagChat.OwnerUser.PhoneNumber
+                }));
+            return Request.CreateResponse(HttpStatusCode.OK, model);
         }
+
+        [HttpPost]
+        [Route("GetAllNewRequestsUsersToChat")]
+        public async Task<HttpResponseMessage> GetAllNewRequestsUsersToChat()
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            var newRequests = await repository.Repository<InvRequestToChat>().FindAllAsync(x => x.TagChat.OwnerUser.Id == user.Id && x.InvRequest.IsWatched == false && x.InvRequest.Confirmed == false);
+            if (newRequests.Count() == 0)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "New requests not found");
+            List<NewRequestsFromUsersToChatModel> model = new List<NewRequestsFromUsersToChatModel>();
+            newRequests.ToList().ForEach(item => model.Add(
+                new NewRequestsFromUsersToChatModel()
+                {
+                    TagChatId = item.TagChat.Id,
+                    TagChatName = item.TagChat.Name,
+                    UserId = item.User.Id,
+                    UserName = item.User.UserName,
+                    UserPhotoName = item.User.PhotoName,
+                    UserPhoneNumber = item.User.PhoneNumber
+                }));
+            return Request.CreateResponse(HttpStatusCode.OK, model);
+        }
+
+        // підправити метод пошуку FindNitification -> min + max
+        // перевірити створення тегів
+        // пошуки...
+        // кинути запрошення в чат (перевірити які чати є)
+        // для того щоб запросити юзерів треба мати список юзерів (назви юзерів і їхні номера телефонів і ід)
+
+        // ??? відмовити реквесту чату треба міняти модель - добавити поле deny
+        // ??? відмовити реквесту юзера треба міняти модель - добавити поле deny
+
+
+        //------------------mastykash 13.07.2018--end
 
         [HttpGet]
         [Route("GetUserTagChats")]
@@ -379,7 +408,8 @@ namespace markchat.Controllers
             Action<Category> search = null;
             search = delegate (Category c)
             {
-                c.Notifications.ForEach(y => messages.Add(y));
+                //тут добавлений пошук по діапазону цін
+                c.Notifications.Where(y=>y.Price>=model.MinPrice && y.Price<=model.MaxPrice).ToList().ForEach(y => messages.Add(y));
 
                 if (c.ChildCategories.Count > 0)
                     c.ChildCategories.ForEach(x => search(x));

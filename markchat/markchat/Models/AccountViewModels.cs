@@ -28,7 +28,26 @@ namespace markchat.Models
         public int InvRequestId { get; set; }
     }
 
-    
+    public class NewRequestsFromChatsToUserModel
+    {
+        public int TagChatId { get; set; }
+        public string TagChatName { get; set; }
+        public string OwnerId { get; set; }
+        public string OwnerName { get; set; }
+        public string OwnerPhotoName { get; set; }
+        public string OwnerPhoneNumber { get; set; }
+    }
+
+    public class NewRequestsFromUsersToChatModel
+    {
+        public int TagChatId { get; set; }
+        public string TagChatName { get; set; }
+        public string UserId { get; set; }
+        public string UserName { get; set; }
+        public string UserPhotoName{ get; set; }
+        public string UserPhoneNumber{ get; set; }
+    }
+
     public class GetRootCategoriesModel
     {
         public int TagChatId { get; set; }
