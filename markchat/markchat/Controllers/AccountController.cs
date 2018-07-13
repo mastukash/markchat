@@ -42,7 +42,6 @@ namespace markchat.Controllers
         [Route("GetLastMessages")]
         //returns last 10 chat messages 
         public async Task<HttpResponseMessage> GetLastMessages(GetLastMessagesModel model)
-
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
 
@@ -90,6 +89,208 @@ namespace markchat.Controllers
             var responce = Request.CreateResponse(HttpStatusCode.OK, responceModel);
 
             return responce;
+        }
+
+        [HttpPost]
+        [Route("GetNextMessages")]
+        //returns Next 10 chat messages 
+        public async Task<HttpResponseMessage> GetNextMessages(GetNextMessagesModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+
+            var tagChat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
+
+            if (!tagChat.Users.Contains(user))
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "You are not chat member");
+            }
+
+            var dbNotifications = tagChat.Messages.OrderByDescending(x => x.PublicationDate).SkipWhile(x=>x.Id!=model.LastNotificationId).Take(10);
+
+            var responceModel = dbNotifications.Select(x =>
+            {
+                var tmp = new TagChatMessageModel()
+                {
+                    Id = x.Id,
+                    AuthorFullName = x.Author?.FullName,
+                    AuthorPhoto = x.Author?.PhotoName,
+                    Currency = x.Currency?.Symbol.ToString(),
+                    AuthorPhone = x.Author?.PhoneNumber,
+                    Description = x.Description,
+                    Price = x.Price,
+                    PublicationDate = x.PublicationDate,
+                    Tags = new Stack<string>()
+                };
+                var messagecategory = x.Category;
+
+                while (messagecategory != null)
+                {
+                    tmp.Tags.Push(messagecategory.Name);
+                    messagecategory = messagecategory.ParentCategory;
+                }
+                return tmp;
+            }
+            ).ToList();
+
+
+
+            var responce = Request.CreateResponse(HttpStatusCode.OK, responceModel);
+
+            return responce;
+        }
+
+        [HttpPost]
+        [Route("MakeInvitationRequestFromUser")]
+        public async Task<HttpResponseMessage> MakeInvitationRequestFromUser(InvitationRequestFromUserModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            var chat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
+            if (chat == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
+            if (chat.Users.Contains(user))
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User already exists in chat");
+            if ((await repository.Repository<InvRequestToChat>().FindAllAsync(x=>x.User.Id == user.Id && x.TagChat.Id == model.TagChatId && x.InvRequest.Confirmed == false)).FirstOrDefault()!= null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Request already exists in chat");
+            await repository.Repository<InvRequestToChat>().AddAsync(new InvRequestToChat()
+            {
+                User = user,
+                TagChat = chat,
+                InvRequest = new InvRequest() { IsWatched = false, Confirmed = false, RequestDateTime = DateTime.Now }
+            });
+
+            await repository.SaveAsync();
+            return Request.CreateResponse(HttpStatusCode.OK);
+        }
+
+        [HttpPost]
+        [Route("MakeInvitationRequestFromTagChat")]
+        public async Task<HttpResponseMessage> MakeInvitationRequestFromTagChat(InvitationRequestFromTagChatModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            var chat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
+            if (chat == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
+            if (chat.OwnerUser.Id !=user.Id )
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "You dont have premission");
+            if (chat.Users.Where(x=>x.Id == model.UserId).FirstOrDefault() != null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User already exists in chat");
+            if ((await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.User.Id == model.UserId && x.TagChat.Id == model.TagChatId && x.InvRequest.Confirmed == false)).FirstOrDefault() != null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Request already exists in user");
+
+            await repository.Repository<InvRequestToUser>().AddAsync(new InvRequestToUser()
+            {
+                User = await repository.Repository<ApplicationUser>().FindByIdAsync(model.UserId),
+                TagChat = chat,
+                InvRequest = new InvRequest() { IsWatched = false, Confirmed = false, RequestDateTime = DateTime.Now }
+            });
+            await repository.SaveAsync();
+            return Request.CreateResponse(HttpStatusCode.OK);
+        }
+
+        [HttpPost]
+        [Route("AcceptInvitationRequestFromUser")]
+        public async Task<HttpResponseMessage> AcceptInvitationRequestFromUser(AcceptInvitationRequestModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            var invReq = await repository.Repository<InvRequestToUser>().FindByIdAsync(model.InvRequestId);
+            if (invReq == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Request doesn't exists");
+            var chat = await repository.Repository<TagChat>().FindByIdAsync(invReq.TagChat.Id);
+            if(user.Id != invReq.User.Id)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Wrong request");
+            if (chat == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
+            if (chat.Users.Where(x => x.Id == user.Id).FirstOrDefault() != null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User already exists in chat");
+            if(invReq.InvRequest.Confirmed == true)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User already confirmed");
+            var invUser = (await repository.Repository<InvRequestToChat>().FindAllAsync(x=>x.TagChat.Id == invReq.TagChat.Id && x.User.Id == user.Id)).FirstOrDefault();
+            if (invUser != null)
+            {
+                invUser.InvRequest.Confirmed = true;
+                await repository.SaveAsync();
+            }
+            invReq.InvRequest.Confirmed = true;
+            chat.Users.Add(user);
+            await repository.SaveAsync();
+            return Request.CreateResponse(HttpStatusCode.OK);
+        }
+
+        [HttpPost]
+        [Route("AcceptInvitationRequestFromTagChat")]
+        public async Task<HttpResponseMessage> AcceptInvitationRequestFromTagChat(AcceptInvitationRequestModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            var invReq = await repository.Repository<InvRequestToChat>().FindByIdAsync(model.InvRequestId);
+            if (invReq == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Request doesn't exists");
+            var chat = await repository.Repository<TagChat>().FindByIdAsync(invReq.TagChat.Id);
+            if (user.Id != invReq.User.Id)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Wrong request");
+            if (chat == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
+            if(chat.OwnerUser.Id != user.Id)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "You don't have permission");
+            if (chat.Users.Where(x => x.Id == user.Id).FirstOrDefault() != null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User already exists in chat");
+            if (invReq.InvRequest.Confirmed == true)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User already confirmed");
+            var invUser = (await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.TagChat.Id == invReq.TagChat.Id && x.User.Id == user.Id)).FirstOrDefault();
+            if (invUser != null)
+            {
+                invUser.InvRequest.Confirmed = true;
+                await repository.SaveAsync();
+            }
+            invReq.InvRequest.Confirmed = true;
+            chat.Users.Add(invReq.User);
+            await repository.SaveAsync();
+            return Request.CreateResponse(HttpStatusCode.OK);
+        }
+
+        [HttpPost]
+        [Route("AcceptInvitationRequestFromTagChat")]
+        public async Task<HttpResponseMessage> GetAllRequestsToUser(AcceptInvitationRequestModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            var invReq = await repository.Repository<InvRequestToChat>().FindByIdAsync(model.InvRequestId);
+            if (invReq == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Request doesn't exists");
+            var chat = await repository.Repository<TagChat>().FindByIdAsync(invReq.TagChat.Id);
+            if (user.Id != invReq.User.Id)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Wrong request");
+            if (chat == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
+            if (chat.OwnerUser.Id != user.Id)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "You don't have permission");
+            if (chat.Users.Where(x => x.Id == user.Id).FirstOrDefault() != null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User already exists in chat");
+            if (invReq.InvRequest.Confirmed == true)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User already confirmed");
+            var invUser = (await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.TagChat.Id == invReq.TagChat.Id && x.User.Id == user.Id)).FirstOrDefault();
+            if (invUser != null)
+            {
+                invUser.InvRequest.Confirmed = true;
+                await repository.SaveAsync();
+            }
+            invReq.InvRequest.Confirmed = true;
+            chat.Users.Add(invReq.User);
+            await repository.SaveAsync();
+            return Request.CreateResponse(HttpStatusCode.OK);
         }
 
         [HttpGet]

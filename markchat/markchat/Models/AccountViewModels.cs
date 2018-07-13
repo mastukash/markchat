@@ -8,6 +8,27 @@ namespace markchat.Models
         public int TagChatId { get; set; }
     }
 
+    public class GetNextMessagesModel
+    {
+        public int TagChatId { get; set; }
+        public int LastNotificationId { get; set; }
+    }
+
+    public class InvitationRequestFromUserModel
+    {
+        public int TagChatId { get; set; }
+    }
+    public class InvitationRequestFromTagChatModel
+    {
+        public int TagChatId { get; set; }
+        public string UserId { get; set; }
+    }
+    public class AcceptInvitationRequestModel
+    {
+        public int InvRequestId { get; set; }
+    }
+
+    
     public class GetRootCategoriesModel
     {
         public int TagChatId { get; set; }
