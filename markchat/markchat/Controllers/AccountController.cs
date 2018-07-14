@@ -310,15 +310,85 @@ namespace markchat.Controllers
             return Request.CreateResponse(HttpStatusCode.OK, model);
         }
 
-        // підправити метод пошуку FindNitification -> min + max
+
+        [HttpGet]
+        [Route("CreateSubCategory")]
+        public async Task<HttpResponseMessage> CreateSubCategory(CreateSubCategoryModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+            var parentCat = await repository.Repository<Category>().FindByIdAsync(model.ParentCatId);
+            if (parentCat == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Categories not found");
+            }
+            if(parentCat.ChatRoot.OwnerUser.Id != user.Id)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "You are not the owner of the tag chat");
+            }
+            if(parentCat.ChildCategories!=null && parentCat.ChildCategories.FirstOrDefault(x=>x.Name == model.NameNewCat)!=null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Category with this name already exists");
+            }
+
+            parentCat.ChildCategories.Add(new Category
+            {
+                ParentCategory = parentCat,
+                Name = model.NameNewCat,
+                Title = model.TitleNewCat,
+                //?????????????????
+                ChatRoot = parentCat.ChatRoot,
+                ChildCategories = new List<Category>(),
+                Notifications = new List<Notification>()
+
+            });
+            await repository.SaveAsync();
+            return Request.CreateResponse(HttpStatusCode.OK, "Category added");
+        }
+
+        /// <summary>
+        /// Отримати усіх користувачів чату
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("GetChatUsers")]
+        public async Task<HttpResponseMessage> GetChatUsers(GetChatUsersModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+            var tagChat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
+            if(tagChat== null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Tag Chat not found");
+            }
+            if(tagChat.OwnerUser.Id != user.Id)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "You are not the owner of the tag chat");
+
+            var returnModel = new List<ChatUserModel>();
+            tagChat.Users.ToList().ForEach(item => returnModel.Add(
+                new ChatUserModel()
+                {
+                    UserId = item.Id,
+                    UserName = item.UserName,
+                    UserPhoneNumber = item.PhoneNumber,
+                    UserPhotoName = item.PhotoName
+                }));
+             return  Request.CreateResponse(HttpStatusCode.OK, returnModel);
+        }
         // перевірити створення тегів
         // пошуки...
-        // кинути запрошення в чат (перевірити які чати є)
         // для того щоб запросити юзерів треба мати список юзерів (назви юзерів і їхні номера телефонів і ід)
 
         // ??? відмовити реквесту чату треба міняти модель - добавити поле deny
         // ??? відмовити реквесту юзера треба міняти модель - добавити поле deny
-
 
         //------------------mastykash 13.07.2018--end
 
@@ -388,8 +458,6 @@ namespace markchat.Controllers
         [Route("FindNotifications")]
         public async Task<HttpResponseMessage> FindNotifications(FindNotificationBindingModel model)
         {
-
-            //TODO добавати пошук по ціновому діапазону!!!!
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null || model == null)
             {
@@ -499,7 +567,6 @@ namespace markchat.Controllers
             return responce;
         }
 
-
         [HttpPost]
         [Route("CreateTagChat")]
         public async Task<HttpResponseMessage> CreateTagChat(CreateTagChatModel model)
@@ -514,14 +581,13 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat Name cannot be empty");
             }
 
-
             string token = RandomOAuthStateGenerator.Generate(64);
 
             repository.Repository<TagChat>().Add(new TagChat
             {
                 Name = model.TagChatName,
                 OwnerUser = user,
-                RootCategory = new Category() { Name = "Root", Title = model.TagChatName },
+                RootCategory = new Category() {  Name = "Root",  Title = model.TagChatName },
                 //InvitationCode = token
             });
 
@@ -530,8 +596,6 @@ namespace markchat.Controllers
 
             return Request.CreateResponse(HttpStatusCode.OK,"Chat created");
         }
-
-
 
         [HttpGet]
         [Route("GetMemberList")]
