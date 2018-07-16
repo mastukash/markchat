@@ -3,6 +3,35 @@ using System.Collections.Generic;
 
 namespace markchat.Models
 {
+    public enum ResponceCode
+    {
+        OK = 0,
+        UserDeleted,
+        BadRequest,
+
+        UserDosentExist,
+        RequestDosentExist,
+        ChatDoesntExist,
+        RequestDoesntExist,
+        CategoryDoesntExist,
+        RequestAlreadyExistsInUser,
+        UserAlreadyExistsInChat,
+        NotChatMember,
+        PremissionError,
+        UserAlreadyConfirmed,
+        NotOwnerChat,
+        CategoryNameAlreadyExist,
+        CategoryNameEmpty,
+        PhoneNumberAlreadyExist,
+        PhoneNumberAlreadyConfirmed,
+        PhoneNumberExceededLimit,
+        CodeIsNotCorrect,
+        InvalidToken,
+        InvalidEmail,
+        FullNameChanged,
+        EmailChanged,
+        EmailAlreadyConfirmed
+    }
     public class GetLastMessagesModel
     {
         public int TagChatId { get; set; }
@@ -38,7 +67,6 @@ namespace markchat.Models
     public class GetChatUsersModel
     {
         public int TagChatId { get; set; }
-        public int TagChatName { get; set; }
     }
     public class ChatUserModel
     {

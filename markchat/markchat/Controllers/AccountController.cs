@@ -340,7 +340,7 @@ namespace markchat.Controllers
                 Name = model.NameNewCat,
                 Title = model.TitleNewCat,
                 //?????????????????
-                ChatRoot = parentCat.ChatRoot,
+                ChatRoot = null,
                 ChildCategories = new List<Category>(),
                 Notifications = new List<Notification>()
 
@@ -369,8 +369,8 @@ namespace markchat.Controllers
             {
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Tag Chat not found");
             }
-            if(tagChat.OwnerUser.Id != user.Id)
-                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "You are not the owner of the tag chat");
+            if(!tagChat.Users.Contains(user))
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "You are not chat member");
 
             var returnModel = new List<ChatUserModel>();
             tagChat.Users.ToList().ForEach(item => returnModel.Add(
