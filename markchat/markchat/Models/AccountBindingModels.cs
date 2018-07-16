@@ -95,8 +95,6 @@ namespace markchat.Models
 
         public string FullName { get; set; }
 
-        public string Token { get; set; }
-
     }
 
     public class RegisterBindingModel

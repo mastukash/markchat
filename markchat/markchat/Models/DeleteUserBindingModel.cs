@@ -1,4 +1,4 @@
-﻿namespace markchat.Controllers
+﻿namespace markchat.Models
 {
     public class DeleteUserBindingModel
     {

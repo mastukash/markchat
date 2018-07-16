@@ -110,7 +110,7 @@ namespace MarkChat.DAL.Entities
             //    m.ToTable("ChildCategories");
             //});
 
-            modelBuilder.Entity<TagChat>().HasRequired<Category>(t => t.RootCategory).WithRequiredPrincipal(t => t.ChatRoot);
+            modelBuilder.Entity<TagChat>().HasRequired<Category>(t => t.RootCategory).WithOptional(t => t.ChatRoot);
        //         .HasOne(a => a.)
        //.WithOne(b => b.Author)
        //.HasForeignKey<AuthorBiography>(b => b.AuthorRef);

@@ -52,7 +52,10 @@ namespace markchat.Controllers
 
             var tagChat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
 
-            if(!tagChat.Users.Contains(user))
+            if(tagChat == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
+
+            if (!tagChat.Users.Contains(user))
             {
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "You are not chat member");
             }
@@ -104,6 +107,9 @@ namespace markchat.Controllers
             }
 
             var tagChat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
+
+            if (tagChat == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
 
             if (!tagChat.Users.Contains(user))
             {
@@ -311,7 +317,23 @@ namespace markchat.Controllers
         }
 
 
-        [HttpGet]
+        [HttpPost]
+        [Route("GetRootCategoryByTagChatId")]
+        public async Task<HttpResponseMessage> GetRootCategoryByTagChatId(GetRootCategoryByTagChatIdModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+
+            var tagChat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
+            var rootCategory = tagChat.RootCategory;
+
+            return Request.CreateResponse(HttpStatusCode.OK, new { Id = rootCategory.Id, Title = rootCategory.Title, Name = rootCategory.Name });
+        }
+
+        [HttpPost]
         [Route("CreateSubCategory")]
         public async Task<HttpResponseMessage> CreateSubCategory(CreateSubCategoryModel model)
         {
@@ -325,7 +347,14 @@ namespace markchat.Controllers
             {
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Categories not found");
             }
-            if(parentCat.ChatRoot.OwnerUser.Id != user.Id)
+            Category category = parentCat;
+            while (category.ParentCategory != null)
+                category = category.ParentCategory;
+
+
+            var tagChat = category.ChatRoot;
+
+            if (tagChat.OwnerUser.Id != user.Id)
             {
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "You are not the owner of the tag chat");
             }
@@ -334,17 +363,20 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Category with this name already exists");
             }
 
-            parentCat.ChildCategories.Add(new Category
-            {
-                ParentCategory = parentCat,
-                Name = model.NameNewCat,
-                Title = model.TitleNewCat,
-                //?????????????????
-                ChatRoot = null,
-                ChildCategories = new List<Category>(),
-                Notifications = new List<Notification>()
 
+            var childCategory = await repository.Repository<Category>().AddAsync(new Category
+            {
+                Name = model.NameNewCat,
+                Title = model.TitleNewCat,                
             });
+
+            childCategory.ParentCategory = parentCat;
+
+            //parentCat.ChildCategories.Add(new Category
+            //{
+            //    Name = model.NameNewCat,
+            //    Title = model.TitleNewCat
+            //});
             await repository.SaveAsync();
             return Request.CreateResponse(HttpStatusCode.OK, "Category added");
         }
@@ -581,14 +613,11 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat Name cannot be empty");
             }
 
-            string token = RandomOAuthStateGenerator.Generate(64);
-
             repository.Repository<TagChat>().Add(new TagChat
             {
                 Name = model.TagChatName,
                 OwnerUser = user,
-                RootCategory = new Category() {  Name = "Root",  Title = model.TagChatName },
-                //InvitationCode = token
+                RootCategory = new Category() {  Name = "Root",  Title = model.TagChatName, ParentCategory = null }, 
             });
 
             await repository.SaveAsync();
