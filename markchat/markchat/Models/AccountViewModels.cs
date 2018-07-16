@@ -56,6 +56,11 @@ namespace markchat.Models
     {
         public int InvRequestId { get; set; }
     }
+
+    public class DenyInvitationRequestModel
+    {
+        public int InvRequestId { get; set; }
+    }
     public class GetRootCategoryByTagChatIdModel
     {
         public int TagChatId { get; set; }

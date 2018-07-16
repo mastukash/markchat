@@ -169,7 +169,7 @@ namespace markchat.Controllers
             {
                 User = user,
                 TagChat = chat,
-                InvRequest = new InvRequest() { IsWatched = false, Confirmed = false, RequestDateTime = DateTime.Now }
+                InvRequest = new InvRequest() { IsWatched = false, Confirmed = false, Denied=false, RequestDateTime = DateTime.Now }
             });
 
             await repository.SaveAsync();
@@ -190,14 +190,14 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "You dont have premission");
             if (chat.Users.Where(x=>x.Id == model.UserId).FirstOrDefault() != null)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User already exists in chat");
-            if ((await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.User.Id == model.UserId && x.TagChat.Id == model.TagChatId && x.InvRequest.Confirmed == false)).FirstOrDefault() != null)
+            if ((await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.User.Id == model.UserId && x.TagChat.Id == model.TagChatId && x.InvRequest.Confirmed == false && x.InvRequest.Denied == false)).FirstOrDefault() != null)
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "Request already exists in user");
 
             await repository.Repository<InvRequestToUser>().AddAsync(new InvRequestToUser()
             {
                 User = await repository.Repository<ApplicationUser>().FindByIdAsync(model.UserId),
                 TagChat = chat,
-                InvRequest = new InvRequest() { IsWatched = false, Confirmed = false, RequestDateTime = DateTime.Now }
+                InvRequest = new InvRequest() { IsWatched = false, Confirmed = false, Denied = false, RequestDateTime = DateTime.Now }
             });
             await repository.SaveAsync();
             return Request.CreateResponse(HttpStatusCode.OK);
@@ -270,6 +270,83 @@ namespace markchat.Controllers
         }
 
         //------------------mastykash 13.07.2018--begin
+        //!!!!!!!!!!!!!обов'язково перевірити!!!!!!!!!!!!!
+        [HttpPost]
+        [Route("DenyInvitationRequestFromUser")]
+        public async Task<HttpResponseMessage> DenyInvitationRequestFromUser(DenyInvitationRequestModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            var invReq = await repository.Repository<InvRequestToUser>().FindByIdAsync(model.InvRequestId);
+            if (invReq == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Request doesn't exists");
+            var chat = await repository.Repository<TagChat>().FindByIdAsync(invReq.TagChat.Id);
+            if (user.Id != invReq.User.Id)
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Wrong request");
+            if (chat == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
+            if (chat.Users.Where(x => x.Id == user.Id).FirstOrDefault() != null)
+                return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already exists in chat");
+            if (invReq.InvRequest.Confirmed == true)
+                return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already confirmed");
+            if (invReq.InvRequest.Denied == true)
+                return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already denied");
+            var invUser = (await repository.Repository<InvRequestToChat>().FindAllAsync(x => x.TagChat.Id == invReq.TagChat.Id && x.User.Id == user.Id)).FirstOrDefault();
+            if (invUser != null)
+            {
+                invUser.InvRequest.Denied = true;
+                invUser.InvRequest.Confirmed = false;
+                invUser.InvRequest.IsWatched = true;
+                await repository.SaveAsync();
+            }
+            //тут перевірити, бо я вже не шарю!!!!
+            invReq.InvRequest.Denied = true;
+            invReq.InvRequest.Confirmed = false;
+            //chat.Users.Add(user);//????????????????
+            await repository.SaveAsync();
+            return Request.CreateResponse(HttpStatusCode.OK);
+        }
+
+        //!!!!!!!!!!!!!обов'язково перевірити!!!!!!!!!!!!!
+        [HttpPost]
+        [Route("DenyInvitationRequestFromTagChat")]
+        public async Task<HttpResponseMessage> DenyInvitationRequestFromTagChat(DenyInvitationRequestModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            var invReq = await repository.Repository<InvRequestToChat>().FindByIdAsync(model.InvRequestId);
+            if (invReq == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Request doesn't exists");
+            var chat = await repository.Repository<TagChat>().FindByIdAsync(invReq.TagChat.Id);
+            if (user.Id != invReq.User.Id)
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Wrong request");
+            if (chat == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
+            if (chat.OwnerUser.Id != user.Id)
+                return Request.CreateErrorResponse(HttpStatusCode.Conflict, "You don't have permission");
+            if (chat.Users.Where(x => x.Id == user.Id).FirstOrDefault() != null)
+                return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already exists in chat");
+            if (invReq.InvRequest.Confirmed == true)
+                return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already confirmed");
+            var invUser = (await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.TagChat.Id == invReq.TagChat.Id && x.User.Id == user.Id)).FirstOrDefault();
+            if (invUser != null)
+            {
+                invUser.InvRequest.Denied = true;
+                invUser.InvRequest.Confirmed = false;
+                invUser.InvRequest.IsWatched = true;
+                await repository.SaveAsync();
+            }
+            //Тут перевірити!!!!!
+            invReq.InvRequest.Denied = true;
+            invReq.InvRequest.Confirmed = false;
+            //chat.Users.Add(invReq.User);
+            await repository.SaveAsync();
+            return Request.CreateResponse(HttpStatusCode.OK);
+        }
+
+
         [HttpPost]
         [Route("GetAllNewRequestsFromChatsToUser")]
         public async Task<HttpResponseMessage> GetAllNewRequestsFromChatsToUser()
@@ -300,7 +377,7 @@ namespace markchat.Controllers
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
-            var newRequests = await repository.Repository<InvRequestToChat>().FindAllAsync(x => x.TagChat.OwnerUser.Id == user.Id && x.InvRequest.IsWatched == false && x.InvRequest.Confirmed == false);
+            var newRequests = await repository.Repository<InvRequestToChat>().FindAllAsync(x => x.TagChat.OwnerUser.Id == user.Id && x.InvRequest.IsWatched == false && x.InvRequest.Confirmed == false && x.InvRequest.Denied == false);
             if (newRequests.Count() == 0)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "New requests not found");
             List<NewRequestsFromUsersToChatModel> model = new List<NewRequestsFromUsersToChatModel>();
@@ -715,7 +792,7 @@ namespace markchat.Controllers
                 Code = code.ToString(),
                 Date = DateTime.Now,
                 Token = token, 
-                Confirmed = false
+                Confirmed = false,
             };
 
             repository.Repository<Confirmation>().Add(confirmationCode);

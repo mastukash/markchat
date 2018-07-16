@@ -17,6 +17,7 @@ namespace MarkChat.DAL.Entities
         public DateTime? RequestDateTime { get; set; }
 
         public bool Confirmed { get; set; }
+        public bool Denied { get; set; }
 
     }
 }
