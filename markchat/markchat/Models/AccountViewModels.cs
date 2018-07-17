@@ -71,7 +71,23 @@ namespace markchat.Models
         public string NameNewCat { get; set; }
         public string TitleNewCat { get; set; }
     }
+    
+    public class TagChatModel
+    {
+        public int Id { get; set; }
+        public string Name{ get; set; }
+        public string OwnerUserId{ get; set; }
+        public string OwnerUserName { get; set; }
+        public int RootCategoryId { get; set; }
+        public string RootCategoryName { get; set; }
+    }
 
+    public class CurrencyModel
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public char Symbol { get; set; }
+    }
     public class GetChatUsersModel
     {
         public int TagChatId { get; set; }

@@ -523,6 +523,52 @@ namespace markchat.Controllers
             var responce = Request.CreateResponse<Dictionary<int, string>>(HttpStatusCode.OK, chats);
 
             return responce;
+        }      
+
+        [HttpGet]
+        [Route("GetAllTagChats")]
+        public async Task<HttpResponseMessage> GetAllTagChats()
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            }
+            var allTagChats = await repository.Repository<TagChat>().GetAllAsync();
+            List<TagChatModel> model = new List<TagChatModel>();
+            allTagChats.ToList().ForEach(x => model.Add(
+                new TagChatModel()
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    OwnerUserId = x.OwnerUser.Id,
+                    OwnerUserName = x.OwnerUser.FullName,
+                    RootCategoryId = x.RootCategory.Id,
+                    RootCategoryName = x.RootCategory.Name,
+                }));
+            return Request.CreateResponse(HttpStatusCode.OK, model);
+        }
+
+        [HttpGet]
+        [Route("GetAllCurrencies")]
+        public async Task<HttpResponseMessage> GetAllCurrencies()
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            }
+            var allCurrencies = await repository.Repository<Currency>().GetAllAsync();
+
+            List<CurrencyModel> model = new List<CurrencyModel>();
+            allCurrencies.ToList().ForEach(x => model.Add(
+                new CurrencyModel()
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    Symbol = x.Symbol
+                }));
+            return Request.CreateResponse(HttpStatusCode.OK, model);
         }
 
         [HttpPost]
@@ -534,8 +580,6 @@ namespace markchat.Controllers
             {
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
             }
-
-            
             TagChat chat = await repository.Repository<TagChat>().FindByIdAsync(model.IdChat);
             Category category = await repository.Repository<Category>().FindByIdAsync(model.IdCategory);
             Currency currency = await repository.Repository<Currency>().FindByIdAsync(model.IdCurrency);
