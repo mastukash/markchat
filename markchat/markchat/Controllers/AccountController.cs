@@ -542,7 +542,7 @@ namespace markchat.Controllers
                     Id = x.Id,
                     Name = x.Name,
                     OwnerUserId = x.OwnerUser.Id,
-                    OwnerUserName = x.OwnerUser.FullName,
+                    OwnerUserName = x.OwnerUser.FullName == "" ? x.OwnerUser.FullName : x.OwnerUser.PhoneNumber,
                     RootCategoryId = x.RootCategory.Id,
                     RootCategoryName = x.RootCategory.Name,
                 }));
@@ -581,18 +581,43 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
             }
             TagChat chat = await repository.Repository<TagChat>().FindByIdAsync(model.IdChat);
+
+            if (chat == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
+            }
+
             Category category = await repository.Repository<Category>().FindByIdAsync(model.IdCategory);
-            Currency currency = await repository.Repository<Currency>().FindByIdAsync(model.IdCurrency);
 
-            //TODO - перевірки чи користувач чату
-            //if (chat.)
-            //{
-
-            //}
-            if (chat == null || category == null)
+            if (category == null)
             {
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Category doesn't exists");
             }
+
+            Currency currency = await repository.Repository<Currency>().FindByIdAsync(model.IdCurrency);
+
+            if (currency == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Currency doesn't exists");
+            }
+
+
+            var tmpCategory = category;
+            while (tmpCategory.ChatRoot == null)
+                tmpCategory = tmpCategory.ParentCategory;
+
+
+            if(tmpCategory.ChatRoot.Id != chat.Id)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Wrong Category");
+            }
+
+
+            if(chat.Users.Where(x=>x.Id == user.Id).Select(x=>x).FirstOrDefault() == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "You are not a chat member.");
+            }
+           
 
             repository.Repository<Notification>().Add(new Notification()
             {
