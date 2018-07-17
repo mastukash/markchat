@@ -270,7 +270,6 @@ namespace markchat.Controllers
         }
 
         //------------------mastykash 13.07.2018--begin
-        //!!!!!!!!!!!!!обов'язково перевірити!!!!!!!!!!!!!
         [HttpPost]
         [Route("DenyInvitationRequestFromUser")]
         public async Task<HttpResponseMessage> DenyInvitationRequestFromUser(DenyInvitationRequestModel model)
@@ -278,37 +277,32 @@ namespace markchat.Controllers
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
-            var invReq = await repository.Repository<InvRequestToUser>().FindByIdAsync(model.InvRequestId);
+            var invReq = await repository.Repository<InvRequestToChat>().FindByIdAsync(model.InvRequestId);
             if (invReq == null)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Request doesn't exists");
-            var chat = await repository.Repository<TagChat>().FindByIdAsync(invReq.TagChat.Id);
-            if (user.Id != invReq.User.Id)
-                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Wrong request");
-            if (chat == null)
-                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
-            if (chat.Users.Where(x => x.Id == user.Id).FirstOrDefault() != null)
+            if (invReq.TagChat==null || invReq.TagChat.OwnerUser.Id != user.Id)
+                return Request.CreateErrorResponse(HttpStatusCode.Conflict, "You are not chat owner");
+
+            if (invReq.TagChat.Users.Where(x => x.Id == invReq.User.Id).FirstOrDefault() != null)
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already exists in chat");
             if (invReq.InvRequest.Confirmed == true)
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already confirmed");
             if (invReq.InvRequest.Denied == true)
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already denied");
-            var invUser = (await repository.Repository<InvRequestToChat>().FindAllAsync(x => x.TagChat.Id == invReq.TagChat.Id && x.User.Id == user.Id)).FirstOrDefault();
-            if (invUser != null)
-            {
-                invUser.InvRequest.Denied = true;
-                invUser.InvRequest.Confirmed = false;
-                invUser.InvRequest.IsWatched = true;
-                await repository.SaveAsync();
-            }
-            //тут перевірити, бо я вже не шарю!!!!
+            //var invToUser= (await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.TagChat.Id == invReq.TagChat.Id && x.User.Id == invReq.User.Id)).FirstOrDefault();
+            //if (invToUser != null)
+            //{
+            //    invToUser.InvRequest.Denied = true;
+            //    invToUser.InvRequest.Confirmed = false;
+            //    invToUser.InvRequest.IsWatched = true;
+            //    await repository.SaveAsync();
+            //}
             invReq.InvRequest.Denied = true;
             invReq.InvRequest.Confirmed = false;
-            //chat.Users.Add(user);//????????????????
             await repository.SaveAsync();
             return Request.CreateResponse(HttpStatusCode.OK);
         }
 
-        //!!!!!!!!!!!!!обов'язково перевірити!!!!!!!!!!!!!
         [HttpPost]
         [Route("DenyInvitationRequestFromTagChat")]
         public async Task<HttpResponseMessage> DenyInvitationRequestFromTagChat(DenyInvitationRequestModel model)
@@ -316,32 +310,30 @@ namespace markchat.Controllers
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
-            var invReq = await repository.Repository<InvRequestToChat>().FindByIdAsync(model.InvRequestId);
+            var invReq = await repository.Repository<InvRequestToUser>().FindByIdAsync(model.InvRequestId);
             if (invReq == null)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Request doesn't exists");
-            var chat = await repository.Repository<TagChat>().FindByIdAsync(invReq.TagChat.Id);
+            var chat = invReq.TagChat;
             if (user.Id != invReq.User.Id)
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Wrong request");
             if (chat == null)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
-            if (chat.OwnerUser.Id != user.Id)
-                return Request.CreateErrorResponse(HttpStatusCode.Conflict, "You don't have permission");
             if (chat.Users.Where(x => x.Id == user.Id).FirstOrDefault() != null)
-                return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already exists in chat");
+                return Request.CreateErrorResponse(HttpStatusCode.Conflict, "You are already a chat member");
             if (invReq.InvRequest.Confirmed == true)
-                return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already confirmed");
-            var invUser = (await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.TagChat.Id == invReq.TagChat.Id && x.User.Id == user.Id)).FirstOrDefault();
-            if (invUser != null)
-            {
-                invUser.InvRequest.Denied = true;
-                invUser.InvRequest.Confirmed = false;
-                invUser.InvRequest.IsWatched = true;
-                await repository.SaveAsync();
-            }
-            //Тут перевірити!!!!!
+                return Request.CreateErrorResponse(HttpStatusCode.Conflict, "You are already confirmed");
+            if (invReq.InvRequest.Denied == true)
+                return Request.CreateErrorResponse(HttpStatusCode.Conflict, "You are already denied");
+            //var invUser = (await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.TagChat.Id == invReq.TagChat.Id && x.User.Id == user.Id)).FirstOrDefault();
+            //if (invUser != null)
+            //{
+            //    invUser.InvRequest.Denied = true;
+            //    invUser.InvRequest.Confirmed = false;
+            //    invUser.InvRequest.IsWatched = true;
+            //    await repository.SaveAsync();
+            //}
             invReq.InvRequest.Denied = true;
             invReq.InvRequest.Confirmed = false;
-            //chat.Users.Add(invReq.User);
             await repository.SaveAsync();
             return Request.CreateResponse(HttpStatusCode.OK);
         }
