@@ -80,7 +80,7 @@ namespace markchat.Models
     {
         public string UserId { get; set; }
         public string UserName { get; set; }
-        public string UserPhotoName { get; set; }
+      //  public string UserPhotoName { get; set; }
         public string UserPhoneNumber { get; set; }
     }
 
@@ -90,7 +90,7 @@ namespace markchat.Models
         public string TagChatName { get; set; }
         public string OwnerId { get; set; }
         public string OwnerName { get; set; }
-        public string OwnerPhotoName { get; set; }
+       // public string OwnerPhotoName { get; set; }
         public string OwnerPhoneNumber { get; set; }
     }
 
@@ -100,7 +100,7 @@ namespace markchat.Models
         public string TagChatName { get; set; }
         public string UserId { get; set; }
         public string UserName { get; set; }
-        public string UserPhotoName{ get; set; }
+        //public string UserPhotoName{ get; set; }
         public string UserPhoneNumber{ get; set; }
     }
 

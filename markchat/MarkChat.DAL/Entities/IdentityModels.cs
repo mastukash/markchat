@@ -7,6 +7,9 @@ using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.AspNet.Identity.Owin;
 using System.Data.Entity;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data.Entity.ModelConfiguration;
+using System.Data.Entity.Infrastructure.Annotations;
 
 namespace MarkChat.DAL.Entities
 {
@@ -58,6 +61,7 @@ namespace MarkChat.DAL.Entities
         }
     }
 
+
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         public ApplicationDbContext()
@@ -86,35 +90,14 @@ namespace MarkChat.DAL.Entities
 
 
             modelBuilder.Entity<TagChat>()
-          .HasRequired<ApplicationUser>(s => s.OwnerUser )
-          .WithMany(g => g.OwnerChats).WillCascadeOnDelete(false);
+          .HasRequired<ApplicationUser>(s => s.OwnerUser)
+          .WithMany(g => g.OwnerChats).WillCascadeOnDelete(false);       
 
-            //  modelBuilder.Entity<TagChat>()
-            //.HasRequired<Category>(s => s.RootCategory)
-            //.WithMany(g => g.ChatRoots).WillCascadeOnDelete(false);
-
-            //modelBuilder.Entity<Category>()
-            //       .HasOptional(c => c.ParentCategory)
-            //       .WithMany()
-            //       .HasForeignKey(c => c.ParentCategoryId);
-
-
-
-            //    modelBuilder.Entity<Category>()
-            //.HasMany(c => c.ParentCategories)
-            //.WithMany(c => c.ChildCategories)
-            //.Map(m =>
-            //{
-            //    m.MapLeftKey("ParentId");
-            //    m.MapRightKey("ChildId");
-            //    m.ToTable("ChildCategories");
-            //});
-
-            modelBuilder.Entity<TagChat>().HasRequired<Category>(t => t.RootCategory).WithOptional(t => t.ChatRoot);
-       //         .HasOne(a => a.)
-       //.WithOne(b => b.Author)
-       //.HasForeignKey<AuthorBiography>(b => b.AuthorRef);
-
+            modelBuilder.Entity<Category>().HasOptional(x => x.ChatRoot).WithRequired(x => x.RootCategory).Map(k => k.MapKey("RootCategoryId")
+            .HasColumnAnnotation("RootCategoryId", IndexAnnotation.AnnotationName,
+                new IndexAnnotation(
+            new IndexAttribute("IX_FirstNameLastName", 1) { IsUnique = true })));
+            
         }
 
         public DbSet<Category> Categoties { get; set; }
@@ -128,9 +111,12 @@ namespace MarkChat.DAL.Entities
         public DbSet<Template> Templates { get; set; }
         public DbSet<InvRequestToChat> InvRequestToChats { get; set; }
         public DbSet<InvRequestToUser> InvRequestTousers { get; set; }
-        
+
         public DbSet<InvRequest> InvRequests { get; set; }
 
     }
+
+
+
 
 }

@@ -152,8 +152,8 @@ namespace markchat.Controllers
         }
 
         [HttpPost]
-        [Route("MakeInvitationRequestFromUser")]
-        public async Task<HttpResponseMessage> MakeInvitationRequestFromUser(InvitationRequestFromUserModel model)
+        [Route("MakeInvitationRequestFromUserToTagChat")]
+        public async Task<HttpResponseMessage> MakeInvitationRequestFromUserToTagChat(InvitationRequestFromUserModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)
@@ -163,7 +163,7 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "Chat doesn't exists");
             if (chat.Users.Contains(user))
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already exists in chat");
-            if ((await repository.Repository<InvRequestToChat>().FindAllAsync(x=>x.User.Id == user.Id && x.TagChat.Id == model.TagChatId && x.InvRequest.Confirmed == false)).FirstOrDefault()!= null)
+            if ((await repository.Repository<InvRequestToChat>().FindAllAsync(x=>x.User.Id == user.Id && x.TagChat.Id == model.TagChatId && x.InvRequest.Confirmed == false && x.InvRequest.Denied == false)).FirstOrDefault()!= null)
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "Request already exists in chat");
             await repository.Repository<InvRequestToChat>().AddAsync(new InvRequestToChat()
             {
@@ -173,12 +173,12 @@ namespace markchat.Controllers
             });
 
             await repository.SaveAsync();
-            return Request.CreateResponse(HttpStatusCode.OK);
+            return Request.CreateResponse(HttpStatusCode.OK, "Your request sent");
         }
 
         [HttpPost]
-        [Route("MakeInvitationRequestFromTagChat")]
-        public async Task<HttpResponseMessage> MakeInvitationRequestFromTagChat(InvitationRequestFromTagChatModel model)
+        [Route("MakeInvitationRequestFromTagChatToUser")]
+        public async Task<HttpResponseMessage> MakeInvitationRequestFromTagChatToUser(InvitationRequestFromTagChatModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)
@@ -200,12 +200,12 @@ namespace markchat.Controllers
                 InvRequest = new InvRequest() { IsWatched = false, Confirmed = false, Denied = false, RequestDateTime = DateTime.Now }
             });
             await repository.SaveAsync();
-            return Request.CreateResponse(HttpStatusCode.OK);
+            return Request.CreateResponse(HttpStatusCode.OK, "Your request sent");
         }
 
         [HttpPost]
-        [Route("AcceptInvitationRequestFromUser")]
-        public async Task<HttpResponseMessage> AcceptInvitationRequestFromUser(AcceptInvitationRequestModel model)
+        [Route("AcceptInvitationRequestFromTagChatToUser")]
+        public async Task<HttpResponseMessage> AcceptInvitationRequestFromTagChatToUser(AcceptInvitationRequestModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)
@@ -220,24 +220,31 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
             if (chat.Users.Where(x => x.Id == user.Id).FirstOrDefault() != null)
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already exists in chat");
-            if(invReq.InvRequest.Confirmed == true)
+            if (invReq.InvRequest.Confirmed == true)
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already confirmed");
+            if (invReq.InvRequest.Denied == true)
+                return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already denied");
             var invUser = (await repository.Repository<InvRequestToChat>().FindAllAsync(x=>x.TagChat.Id == invReq.TagChat.Id && x.User.Id == user.Id)).FirstOrDefault();
             if (invUser != null)
             {
                 invUser.InvRequest.Confirmed = true;
                 invUser.InvRequest.IsWatched = true;
+                invUser.InvRequest.Denied = false;
+
                 await repository.SaveAsync();
             }
             invReq.InvRequest.Confirmed = true;
+            invReq.InvRequest.IsWatched = true;
+            invReq.InvRequest.Denied = false;
+
             chat.Users.Add(user);
             await repository.SaveAsync();
             return Request.CreateResponse(HttpStatusCode.OK);
         }
 
         [HttpPost]
-        [Route("AcceptInvitationRequestFromTagChat")]
-        public async Task<HttpResponseMessage> AcceptInvitationRequestFromTagChat(AcceptInvitationRequestModel model)
+        [Route("AcceptInvitationRequestFromUserToTagChat")]
+        public async Task<HttpResponseMessage> AcceptInvitationRequestFromUserToTagChat(AcceptInvitationRequestModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)
@@ -246,24 +253,27 @@ namespace markchat.Controllers
             if (invReq == null)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Request doesn't exists");
             var chat = await repository.Repository<TagChat>().FindByIdAsync(invReq.TagChat.Id);
-            if (user.Id != invReq.User.Id)
-                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Wrong request");
             if (chat == null)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
             if(chat.OwnerUser.Id != user.Id)
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "You don't have permission");
-            if (chat.Users.Where(x => x.Id == user.Id).FirstOrDefault() != null)
+            if (chat.Users.Where(x => x.Id == invReq.User.Id).FirstOrDefault() != null)
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already exists in chat");
             if (invReq.InvRequest.Confirmed == true)
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already confirmed");
+            if (invReq.InvRequest.Denied== true)
+                return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already denied");
             var invUser = (await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.TagChat.Id == invReq.TagChat.Id && x.User.Id == user.Id)).FirstOrDefault();
             if (invUser != null)
             {
                 invUser.InvRequest.Confirmed = true;
                 invUser.InvRequest.IsWatched = true;
+                invUser.InvRequest.Denied = false;
                 await repository.SaveAsync();
             }
             invReq.InvRequest.Confirmed = true;
+            invReq.InvRequest.Denied = false;
+            invReq.InvRequest.IsWatched = true;
             chat.Users.Add(invReq.User);
             await repository.SaveAsync();
             return Request.CreateResponse(HttpStatusCode.OK);
@@ -271,8 +281,8 @@ namespace markchat.Controllers
 
         //------------------mastykash 13.07.2018--begin
         [HttpPost]
-        [Route("DenyInvitationRequestFromUser")]
-        public async Task<HttpResponseMessage> DenyInvitationRequestFromUser(DenyInvitationRequestModel model)
+        [Route("DenyInvitationRequestFromUserToTagChat")]
+        public async Task<HttpResponseMessage> DenyInvitationRequestFromUserToTagChat(DenyInvitationRequestModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)
@@ -289,23 +299,24 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already confirmed");
             if (invReq.InvRequest.Denied == true)
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already denied");
-            //var invToUser= (await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.TagChat.Id == invReq.TagChat.Id && x.User.Id == invReq.User.Id)).FirstOrDefault();
-            //if (invToUser != null)
-            //{
-            //    invToUser.InvRequest.Denied = true;
-            //    invToUser.InvRequest.Confirmed = false;
-            //    invToUser.InvRequest.IsWatched = true;
-            //    await repository.SaveAsync();
-            //}
+            var invUser = (await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.TagChat.Id == invReq.TagChat.Id && x.User.Id == invReq.User.Id)).FirstOrDefault();
+            if (invUser != null)
+            {
+                invUser.InvRequest.Denied = true;
+                invUser.InvRequest.Confirmed = false;
+                invUser.InvRequest.IsWatched = true;
+                await repository.SaveAsync();
+            }
             invReq.InvRequest.Denied = true;
             invReq.InvRequest.Confirmed = false;
+            invReq.InvRequest.IsWatched = true;
             await repository.SaveAsync();
             return Request.CreateResponse(HttpStatusCode.OK);
         }
 
         [HttpPost]
-        [Route("DenyInvitationRequestFromTagChat")]
-        public async Task<HttpResponseMessage> DenyInvitationRequestFromTagChat(DenyInvitationRequestModel model)
+        [Route("DenyInvitationRequestFromTagChatToUser")]
+        public async Task<HttpResponseMessage> DenyInvitationRequestFromTagChatToUser(DenyInvitationRequestModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)
@@ -324,16 +335,18 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "You are already confirmed");
             if (invReq.InvRequest.Denied == true)
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "You are already denied");
-            //var invUser = (await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.TagChat.Id == invReq.TagChat.Id && x.User.Id == user.Id)).FirstOrDefault();
-            //if (invUser != null)
-            //{
-            //    invUser.InvRequest.Denied = true;
-            //    invUser.InvRequest.Confirmed = false;
-            //    invUser.InvRequest.IsWatched = true;
-            //    await repository.SaveAsync();
-            //}
+            var invUser = (await repository.Repository<InvRequestToChat>().FindAllAsync(x => x.TagChat.Id == invReq.TagChat.Id && x.User.Id == user.Id)).FirstOrDefault();
+            if (invUser != null)
+            {
+                invUser.InvRequest.Denied = true;
+                invUser.InvRequest.Confirmed = false;
+                invUser.InvRequest.IsWatched = true;
+                await repository.SaveAsync();
+            }
             invReq.InvRequest.Denied = true;
             invReq.InvRequest.Confirmed = false;
+            invReq.InvRequest.IsWatched = true;
+
             await repository.SaveAsync();
             return Request.CreateResponse(HttpStatusCode.OK);
         }
@@ -346,7 +359,7 @@ namespace markchat.Controllers
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
-            var newRequests = await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.User.Id == user.Id && x.InvRequest.IsWatched == false && x.InvRequest.Confirmed == false);
+            var newRequests = await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.User.Id == user.Id && x.InvRequest.IsWatched == false && x.InvRequest.Confirmed == false && x.InvRequest.Denied == false);
             if(newRequests.Count()==0)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "New requests not found");
             List<NewRequestsFromChatsToUserModel> model = new List<NewRequestsFromChatsToUserModel>();
@@ -356,15 +369,15 @@ namespace markchat.Controllers
                     TagChatName = item.TagChat.Name,
                     OwnerId = item.TagChat.OwnerUser.Id,
                     OwnerName = item.TagChat.OwnerUser.FullName,
-                    OwnerPhotoName = item.TagChat.OwnerUser.PhotoName,
+                   // OwnerPhotoName = item.TagChat.OwnerUser.PhotoName,
                     OwnerPhoneNumber = item.TagChat.OwnerUser.PhoneNumber
                 }));
             return Request.CreateResponse(HttpStatusCode.OK, model);
         }
 
         [HttpPost]
-        [Route("GetAllNewRequestsUsersToChat")]
-        public async Task<HttpResponseMessage> GetAllNewRequestsUsersToChat()
+        [Route("GetAllNewRequestsFromUsersToChat")]
+        public async Task<HttpResponseMessage> GetAllNewRequestsFromUsersToChat()
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)
@@ -380,7 +393,7 @@ namespace markchat.Controllers
                     TagChatName = item.TagChat.Name,
                     UserId = item.User.Id,
                     UserName = item.User.UserName,
-                    UserPhotoName = item.User.PhotoName,
+                   // UserPhotoName = item.User.PhotoName,
                     UserPhoneNumber = item.User.PhoneNumber
                 }));
             return Request.CreateResponse(HttpStatusCode.OK, model);
@@ -398,6 +411,10 @@ namespace markchat.Controllers
             }
 
             var tagChat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
+            if (tagChat == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Tag Chat doesn't exists");
+            }
             var rootCategory = tagChat.RootCategory;
 
             return Request.CreateResponse(HttpStatusCode.OK, new { Id = rootCategory.Id, Title = rootCategory.Title, Name = rootCategory.Name });
@@ -481,19 +498,11 @@ namespace markchat.Controllers
                     UserId = item.Id,
                     UserName = item.UserName,
                     UserPhoneNumber = item.PhoneNumber,
-                    UserPhotoName = item.PhotoName
+                    //UserPhotoName = item.PhotoName
                 }));
              return  Request.CreateResponse(HttpStatusCode.OK, returnModel);
         }
-        // перевірити створення тегів
-        // пошуки...
-        // для того щоб запросити юзерів треба мати список юзерів (назви юзерів і їхні номера телефонів і ід)
-
-        // ??? відмовити реквесту чату треба міняти модель - добавити поле deny
-        // ??? відмовити реквесту юзера треба міняти модель - добавити поле deny
-
-        //------------------mastykash 13.07.2018--end
-
+        
         [HttpGet]
         [Route("GetUserTagChats")]
         public async Task<HttpResponseMessage> GetUserTagChats()
@@ -509,7 +518,8 @@ namespace markchat.Controllers
 
             (await repository.Repository<TagChat>().FindAllAsync(x => x.Users.Select(y=>y.Id).Contains(user.Id))).ToList()
                 .ForEach(x=> chats.Add(x.Id, x.Name));
-
+            if(chats.Count()==0)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound,"You dont have any chats yet");
             var responce = Request.CreateResponse<Dictionary<int, string>>(HttpStatusCode.OK, chats);
 
             return responce;
@@ -555,7 +565,7 @@ namespace markchat.Controllers
 
             return Request.CreateResponse(HttpStatusCode.OK);
         }
-
+        //добавати повернення списку валют
         [HttpPost]
         [Route("FindNotifications")]
         public async Task<HttpResponseMessage> FindNotifications(FindNotificationBindingModel model)
@@ -578,7 +588,6 @@ namespace markchat.Controllers
             Action<Category> search = null;
             search = delegate (Category c)
             {
-                //тут добавлений пошук по діапазону цін
                 c.Notifications.Where(y=>y.Price>=model.MinPrice && y.Price<=model.MaxPrice).ToList().ForEach(y => messages.Add(y));
 
                 if (c.ChildCategories.Count > 0)
@@ -633,13 +642,13 @@ namespace markchat.Controllers
             }
 
 
-            Dictionary<int, string> childCategories = new Dictionary<int, string>();
-            chat.RootCategory.ChildCategories.ForEach(x => childCategories.Add(x.Id, x.Name));
+
+            List<CategoryInfo> childCategories = new List<CategoryInfo>();
+            chat.RootCategory.ChildCategories.ForEach(x => childCategories.Add(new CategoryInfo { CategoryId = x.Id, Name = x.Name, Title = x.Title }));
 
 
-            var responce = Request.CreateResponse<Dictionary<int, string>>(HttpStatusCode.OK, childCategories);
+            return Request.CreateResponse(HttpStatusCode.OK, childCategories);
 
-            return responce;
         }
 
         [HttpPost]
@@ -660,11 +669,11 @@ namespace markchat.Controllers
             }
 
 
-            Dictionary<int, string> childCategories = new Dictionary<int, string>();
-            category.ChildCategories.ForEach(x => childCategories.Add(x.Id, x.Name));
+            List<CategoryInfo> childCategories = new List<CategoryInfo>();
+            category.ChildCategories.ForEach(x => childCategories.Add(new CategoryInfo { CategoryId = x.Id, Name = x.Name, Title = x.Title }));
 
 
-            var responce = Request.CreateResponse<Dictionary<int, string>>(HttpStatusCode.OK, childCategories);
+            var responce = Request.CreateResponse(HttpStatusCode.OK, childCategories);
 
             return responce;
         }
@@ -683,12 +692,19 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.LengthRequired, "Chat Name cannot be empty");
             }
 
-            repository.Repository<TagChat>().Add(new TagChat
+
+            var rootCategory = await repository.Repository<Category>().AddAsync(new Category() { Name = "Root", Title = model.TagChatName, ParentCategory = null });
+            await repository.SaveAsync();
+
+            var chat = await repository.Repository<TagChat>().AddAsync(new TagChat
             {
                 Name = model.TagChatName,
                 OwnerUser = user,
-                RootCategory = new Category() {  Name = "Root",  Title = model.TagChatName, ParentCategory = null }, 
+                RootCategory = rootCategory
             });
+
+            chat.Users.Add(user);
+
 
             await repository.SaveAsync();
                  
@@ -712,16 +728,27 @@ namespace markchat.Controllers
 
             var users = await repository.Repository<ApplicationUser>().FindAllAsync(x => x.Id != user.Id);
 
-            users.ToList().ForEach(x => userList.Add(x.Id, new UserInfo
+            users.ToList().ForEach(x =>
             {
-                FullName = x.FullName == "" ? x.FullName : x.PhoneNumber,
-                PhotoName = x.PhotoName,
-                Photo = File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName))
-            }
-                ));
+                var userInfo = new UserInfo
+                {
+                    FullName = x.FullName == "" ? x.FullName : x.PhoneNumber,
+                };
+                if (x.PhotoName != null)
+                {
+                    userInfo.PhotoName = x.PhotoName;
+                    userInfo.Photo = File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
+                            $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName));
+                }
+                else
+                {
+                    userInfo.PhotoName = "userPhoto.jpg";
+                    userInfo.Photo = File.ReadAllBytes(HttpContext.Current.Server.MapPath(
+                            $"~/Images/UserPhotos/userPhoto.png"));
+                }
+                userList.Add(x.Id, userInfo);
+            });
            
-
             var responce = Request.CreateResponse<Dictionary<string, UserInfo>>(HttpStatusCode.OK, userList);
 
             return responce;
@@ -927,11 +954,11 @@ namespace markchat.Controllers
 
         [HttpPost]
         [Route("ConfigurateUserCabinet")]
-        public async Task<IHttpActionResult> ConfigurateUserCabinet(CabinetUserBindingModel model)
+        public async Task<HttpResponseMessage> ConfigurateUserCabinet(CabinetUserBindingModel model)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Invalid data");
             }
             
             
@@ -951,7 +978,7 @@ namespace markchat.Controllers
                 }
                 catch
                 {
-                    return BadRequest("Invalid Email");
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Invalid Email");
                 }
             }
 
@@ -974,7 +1001,7 @@ namespace markchat.Controllers
 
             await repository.SaveAsync();
 
-            return Ok();
+            return Request.CreateResponse(HttpStatusCode.OK, "Success");
         }
 
 
