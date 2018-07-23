@@ -95,6 +95,118 @@ namespace markchat.Controllers
             return responce;
         }
 
+        [HttpGet]
+        [Route("GetOwnTagChats")]
+        public async Task<HttpResponseMessage> GetOwnTagChats()
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            }
+
+            var tagChats = await repository.Repository<TagChat>().FindAllAsync(x => x.OwnerUser.Id == user.Id);
+
+            return Request.CreateResponse(HttpStatusCode.OK, tagChats.Select(x => new
+            {
+                Id = x.Id,
+                Name = x.Name
+            }));
+        }
+
+        [HttpGet]
+        [Route("GetTemplates")]
+        public async Task<HttpResponseMessage> GetTemplates()
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            }
+
+            var templates = await repository.Repository<Template>().GetAllAsync();
+
+            return Request.CreateResponse(HttpStatusCode.OK, templates.Select(x => new
+            {
+                Id = x.IdTemplate,
+                Name = x.Name
+            }).ToList());
+        }
+
+        [HttpPost]
+        [Route("CreateTagChatByTemplate")]
+        public async Task<HttpResponseMessage> CreateTagChatByTemplate(CreateTagChatByTemplateModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            }
+            if (model.TagChatName == "")
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.LengthRequired, "Chat Name cannot be empty");
+            }
+            var template = await repository.Repository<Template>().FindByIdAsync(model.IdTemplate);
+            if (template == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Template doesn't exists");
+            }
+
+
+            var rootCategory = await repository.Repository<Category>().AddAsync(new Category() { Name = "Root", Title = model.TagChatName, ParentCategory = null });
+            await repository.SaveAsync();
+
+            var chat = await repository.Repository<TagChat>().AddAsync(new TagChat
+            {
+                Name = model.TagChatName,
+                OwnerUser = user,
+                RootCategory = rootCategory
+            });
+
+            chat.Users.Add(user);
+
+
+            await repository.SaveAsync();
+
+            AddCategories(rootCategory, template.Root.ChildCategories);
+
+            return Request.CreateResponse(HttpStatusCode.OK, "Chat created");
+        }
+
+        private async void AddCategories(Category root , List<Category> childs)
+        {
+            foreach (var item in childs)
+            {
+                var tmp = await repository.Repository<Category>().AddAsync(new Category { Name = item.Name, Title = item.Title, ParentCategory = root });
+                await repository.SaveAsync();
+                if (item.ChildCategories.Count > 0)
+                    AddCategories(tmp, item.ChildCategories);
+            }
+
+        }
+
+        [HttpPost]
+        [Route("IsChatOwner")]
+        public async Task<HttpResponseMessage> IsChatOwner(IsChatOwnerModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            }
+
+            var tagChat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
+
+            if (tagChat == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
+
+            return Request.CreateResponse(HttpStatusCode.OK, tagChat.OwnerUser.Id == user.Id);
+        }
+
+
         [HttpPost]
         [Route("GetNextMessages")]
         //returns Next 10 chat messages 
@@ -175,6 +287,38 @@ namespace markchat.Controllers
             await repository.SaveAsync();
             return Request.CreateResponse(HttpStatusCode.OK, "Your request sent");
         }
+        [HttpPost]
+        [Route("MakeInvitationRequestsToUsers")]
+        public async Task<HttpResponseMessage> MakeInvitationRequestsFromTagChatToUser(InvitationRequestsToUsersModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            var chat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
+            if (chat == null)
+                return Request.CreateErrorResponse(HttpStatusCode.Conflict, "Chat doesn't exists");
+            if (chat.OwnerUser.Id != user.Id)
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "You dont have premission");
+            foreach (var item in model.UsersId)
+            {
+                if (chat.Users.Where(x => x.Id == item).FirstOrDefault() != null)
+                  continue;
+                if ((await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.User.Id == item && x.TagChat.Id == model.TagChatId && x.InvRequest.Confirmed == false && x.InvRequest.Denied == false)).FirstOrDefault() != null)
+                    continue;
+
+                await repository.Repository<InvRequestToUser>().AddAsync(new InvRequestToUser()
+                {
+                    User = await repository.Repository<ApplicationUser>().FindByIdAsync(item),
+                    TagChat = chat,
+                    InvRequest = new InvRequest() { IsWatched = false, Confirmed = false, Denied = false, RequestDateTime = DateTime.Now }
+                });
+                await repository.SaveAsync();
+            }
+            
+            return Request.CreateResponse(HttpStatusCode.OK, "Your request sent");
+        }
+
+        
 
         [HttpPost]
         [Route("MakeInvitationRequestFromTagChatToUser")]
@@ -473,7 +617,7 @@ namespace markchat.Controllers
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
-        [HttpGet]
+        [HttpPost]
         [Route("GetChatUsers")]
         public async Task<HttpResponseMessage> GetChatUsers(GetChatUsersModel model)
         {
@@ -551,6 +695,7 @@ namespace markchat.Controllers
 
         [HttpGet]
         [Route("GetAllCurrencies")]
+        //[TokenValidation]
         public async Task<HttpResponseMessage> GetAllCurrencies()
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
@@ -570,6 +715,28 @@ namespace markchat.Controllers
                 }));
             return Request.CreateResponse(HttpStatusCode.OK, model);
         }
+
+
+        [HttpGet]
+        [Route("GetAllUsers")]
+        public async Task<HttpResponseMessage> GetAllUsers()
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            }
+            var allUsers = await repository.Repository<ApplicationUser>().GetAllAsync();
+            
+            return Request.CreateResponse(HttpStatusCode.OK, allUsers.Select(x=> new
+            {
+                Id = x.Id,
+                OwnerUserName = x.FullName == "" ? x.FullName : x.PhoneNumber,
+            }));
+        }
+
+
+
 
         [HttpPost]
         [Route("AddNotification")]

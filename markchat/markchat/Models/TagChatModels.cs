@@ -11,6 +11,11 @@ namespace markchat.Models
         public string TagChatName { get; set; }
     }
 
+    public class CreateTagChatByTemplateModel
+    {
+        public string TagChatName { get; set; }
+        public int IdTemplate { get; set; }
+    }
     public class CategoryInfo
     {
         public int CategoryId { get; set; }
