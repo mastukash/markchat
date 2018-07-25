@@ -125,6 +125,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ChatEntities\ChatRoom.cs" />
+    <Compile Include="ChatEntities\ChatRoomMember.cs" />
+    <Compile Include="ChatEntities\TypeChat.cs" />
     <Compile Include="Entities\Category.cs" />
     <Compile Include="Entities\CategoryTag.cs" />
     <Compile Include="Entities\Confirmation.cs" />
