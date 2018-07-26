@@ -37,6 +37,11 @@ namespace markchat.Models
         public int TagChatId { get; set; }
     }
 
+    public class IsChatOwnerModel
+    {
+        public int TagChatId { get; set; }
+    }
+
     public class GetNextMessagesModel
     {
         public int TagChatId { get; set; }
@@ -46,6 +51,11 @@ namespace markchat.Models
     public class InvitationRequestFromUserModel
     {
         public int TagChatId { get; set; }
+    }
+    public class InvitationRequestsToUsersModel
+    {
+        public int TagChatId { get; set; }
+        public List<string> UsersId { get; set; }
     }
     public class InvitationRequestFromTagChatModel
     {
