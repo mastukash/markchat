@@ -172,7 +172,7 @@ namespace markchat.Controllers
 
             AddCategories(rootCategory, template.Root.ChildCategories);
 
-            return Request.CreateResponse(HttpStatusCode.OK, "Chat created");
+            return Request.CreateResponse(HttpStatusCode.OK, new { TagChatName = chat.Name, Id = chat.Id});
         }
 
         private async void AddCategories(Category root , List<Category> childs)
@@ -658,13 +658,13 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized,"User doesn't exists");
             }
 
-            Dictionary<int, string> chats = new Dictionary<int, string>();
+            List<ChatInfoModel> chats =  new List<ChatInfoModel>();
 
             (await repository.Repository<TagChat>().FindAllAsync(x => x.Users.Select(y=>y.Id).Contains(user.Id))).ToList()
-                .ForEach(x=> chats.Add(x.Id, x.Name));
+                .ForEach(x=> chats.Add(new ChatInfoModel { Id = x.Id, Name = x.Name }));
             if(chats.Count()==0)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound,"You dont have any chats yet");
-            var responce = Request.CreateResponse<Dictionary<int, string>>(HttpStatusCode.OK, chats);
+            var responce = Request.CreateResponse(HttpStatusCode.OK, chats);
 
             return responce;
         }      
@@ -945,7 +945,7 @@ namespace markchat.Controllers
             await repository.SaveAsync();
                  
 
-            return Request.CreateResponse(HttpStatusCode.OK,"Chat created");
+            return Request.CreateResponse(HttpStatusCode.OK, new { TagChatName = chat.Name, Id = chat.Id });
         }
 
         [HttpGet]
