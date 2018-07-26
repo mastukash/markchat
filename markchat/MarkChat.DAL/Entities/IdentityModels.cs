@@ -37,7 +37,6 @@ namespace MarkChat.DAL.Entities
 
         public int SecurityCodeEnterCount { get; set; }
         public DateTime? LastSecurityCodeSendDate { get; set; }
-        public virtual List<Message> Messages { get; set; }
         public virtual List<ChatRoomMember> ChatRoomsMember { get; set; }
 
         public virtual List<Notification> Notifications { get; set; }

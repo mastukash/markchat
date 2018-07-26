@@ -14,5 +14,8 @@ namespace MarkChat.DAL.ChatEntities
         public virtual ApplicationUser User { get; set; }
         public virtual ChatRoom ChatRoom { get; set; }
         public virtual List<ReadedMsg> ReadedMsgs { get; set; }
+        public virtual List<Message> Messages { get; set; }
+
+        
     }
 }
