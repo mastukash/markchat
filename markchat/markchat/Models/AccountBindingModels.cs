@@ -84,7 +84,7 @@ namespace markchat.Models
     {
         public string PhotoName { get; set; }
         //тут міститься масив байт, назва фотографії і її розширення
-        public byte[] File { get; set; }
+        public string File { get; set; }
 
         [Display(Name = "Email")]
         public string Email { get; set; }

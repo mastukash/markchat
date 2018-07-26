@@ -1196,10 +1196,7 @@ namespace markchat.Controllers
             {
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Invalid data");
             }
-            
-            
             var user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
-
             user.FullName = model.FullName;
 
             if (model.Email != "" || model.Email != null)
@@ -1222,21 +1219,22 @@ namespace markchat.Controllers
             if (model.File != null && model.PhotoName != null)
             {
                 user.PhotoName = model.PhotoName;
-                byte[] fileData = model.File;
+                byte[] fileData = Convert.FromBase64String(model.File);
                 if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Id}")))
                     Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Id}"));
                 //Compressor c = new Compressor();
                 //fileData = c.Wrap(fileData);
-                System.IO.File.WriteAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
+                var pathToFile = Path.Combine(HttpContext.Current.Server.MapPath(
                             $"~/Images/UserPhotos/{user.Id}/"), model.PhotoName
-                            ), fileData);
+                            );
+                //if(Path.GetExtension(pathToFile)!="jpg")
+                //{
+                //    //Або інші типи (а ще краще поставити валідацію!!!)
+                //}
+                System.IO.File.WriteAllBytes(pathToFile, fileData);
 
             }
-
-          
-
             await repository.SaveAsync();
-
             return Request.CreateResponse(HttpStatusCode.OK, "Success");
         }
 
