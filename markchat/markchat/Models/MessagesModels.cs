@@ -10,7 +10,8 @@ namespace markchat.Models
     public class SendMessageModel
     {
         public string Body { get; set; }
-        public int ChatRoomId { get; set; }
+        public int? ChatRoomId { get; set; }
+        public string ToUserId { get; set; }
         public List<string> Attachments { get; set; }
     }
 }
