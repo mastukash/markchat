@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace MarkChat.DAL.ChatEntities
 {
-    public class TypeChat
+    public class AttachmentMsg
     {
         public int Id { get; set; }
-        public string Name { get; set; }
-        public virtual List<ChatRoom> ChatRooms { get; set; }
+        public string PathToFile { get; set; }
+        public virtual Message Message { get; set; }
     }
 }

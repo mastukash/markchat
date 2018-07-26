@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity.ModelConfiguration;
 using System.Data.Entity.Infrastructure.Annotations;
+using MarkChat.DAL.ChatEntities;
 
 namespace MarkChat.DAL.Entities
 {
@@ -36,6 +37,8 @@ namespace MarkChat.DAL.Entities
 
         public int SecurityCodeEnterCount { get; set; }
         public DateTime? LastSecurityCodeSendDate { get; set; }
+        public virtual List<Message> Messages { get; set; }
+        public virtual List<ChatRoomMember> ChatRoomsMember { get; set; }
 
         public virtual List<Notification> Notifications { get; set; }
 

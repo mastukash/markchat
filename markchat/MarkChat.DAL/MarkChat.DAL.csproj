@@ -125,8 +125,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ChatEntities\AttachmentMsg.cs" />
+    <Compile Include="ChatEntities\ReadedMsg.cs" />
     <Compile Include="ChatEntities\ChatRoom.cs" />
     <Compile Include="ChatEntities\ChatRoomMember.cs" />
+    <Compile Include="ChatEntities\Message.cs" />
     <Compile Include="ChatEntities\TypeChat.cs" />
     <Compile Include="Entities\Category.cs" />
     <Compile Include="Entities\CategoryTag.cs" />
