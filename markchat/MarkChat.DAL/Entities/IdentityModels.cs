@@ -66,6 +66,10 @@ namespace MarkChat.DAL.Entities
 
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
+        static ApplicationDbContext()
+        {
+            Database.SetInitializer<ApplicationDbContext>(new ContextInitializer());
+        }
         public ApplicationDbContext()
             : base("DefaultConnection", throwIfV1Schema: false)
         {
@@ -113,8 +117,14 @@ namespace MarkChat.DAL.Entities
         public DbSet<Template> Templates { get; set; }
         public DbSet<InvRequestToChat> InvRequestToChats { get; set; }
         public DbSet<InvRequestToUser> InvRequestTousers { get; set; }
-
         public DbSet<InvRequest> InvRequests { get; set; }
+        public DbSet<AttachmentMsg> AttachmentMsgs { get; set; }
+        public DbSet<ChatRoom> ChatRooms { get; set; }
+        public DbSet<ChatRoomMember> ChatRoomMember { get; set; }
+        public DbSet<Message> Message { get; set; }
+        public DbSet<ReadedMsg> ReadedMsgs { get; set; }
+        public DbSet<TypeChat> TypesChats { get; set; }
+
 
     }
 

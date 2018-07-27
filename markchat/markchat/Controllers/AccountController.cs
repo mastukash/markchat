@@ -131,7 +131,7 @@ namespace markchat.Controllers
             return Request.CreateResponse(HttpStatusCode.OK, templates.Select(x => new
             {
                 Id = x.IdTemplate,
-                Name = x.Name
+                x.Name
             }).ToList());
         }
 
@@ -172,7 +172,7 @@ namespace markchat.Controllers
 
             AddCategories(rootCategory, template.Root.ChildCategories);
 
-            return Request.CreateResponse(HttpStatusCode.OK, new { TagChatName = chat.Name, Id = chat.Id});
+            return Request.CreateResponse(HttpStatusCode.OK, new { TagChatName = chat.Name, chat.Id});
         }
 
         private async void AddCategories(Category root , List<Category> childs)
@@ -561,7 +561,7 @@ namespace markchat.Controllers
             }
             var rootCategory = tagChat.RootCategory;
 
-            return Request.CreateResponse(HttpStatusCode.OK, new { Id = rootCategory.Id, Title = rootCategory.Title, Name = rootCategory.Name });
+            return Request.CreateResponse(HttpStatusCode.OK, new { rootCategory.Id, rootCategory.Title, rootCategory.Name });
         }
 
         [HttpPost]
@@ -730,7 +730,7 @@ namespace markchat.Controllers
             
             return Request.CreateResponse(HttpStatusCode.OK, allUsers.Select(x=> new
             {
-                Id = x.Id,
+                x.Id,
                 OwnerUserName = x.FullName == "" ? x.FullName : x.PhoneNumber,
             }));
         }
@@ -945,7 +945,7 @@ namespace markchat.Controllers
             await repository.SaveAsync();
                  
 
-            return Request.CreateResponse(HttpStatusCode.OK, new { TagChatName = chat.Name, Id = chat.Id });
+            return Request.CreateResponse(HttpStatusCode.OK, new { TagChatName = chat.Name, chat.Id });
         }
 
         [HttpGet]
@@ -1106,7 +1106,7 @@ namespace markchat.Controllers
 
             await repository.SaveAsync();
 
-            return Ok(new { Token = confirmationCode.Token });
+            return Ok(new { confirmationCode.Token });
         }
 
         [HttpPost]
@@ -1388,7 +1388,7 @@ namespace markchat.Controllers
             {
                 Email = User.Identity.GetUserName(),
                 HasRegistered = externalLogin == null,
-                LoginProvider = externalLogin != null ? externalLogin.LoginProvider : null
+                LoginProvider = externalLogin?.LoginProvider
             };
         }
 
@@ -1634,7 +1634,7 @@ namespace markchat.Controllers
                         response_type = "token",
                         client_id = Startup.PublicClientId,
                         redirect_uri = new Uri(Request.RequestUri, returnUrl).AbsoluteUri,
-                        state = state
+                        state
                     }),
                     State = state
                 };
@@ -1924,8 +1924,10 @@ namespace markchat.Controllers
 
             public IList<Claim> GetClaims()
             {
-                IList<Claim> claims = new List<Claim>();
-                claims.Add(new Claim(ClaimTypes.NameIdentifier, ProviderKey, null, LoginProvider));
+                IList<Claim> claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, ProviderKey, null, LoginProvider)
+                };
 
                 if (UserName != null)
                 {

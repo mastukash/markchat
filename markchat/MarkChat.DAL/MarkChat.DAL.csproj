@@ -131,6 +131,7 @@
     <Compile Include="ChatEntities\ChatRoomMember.cs" />
     <Compile Include="ChatEntities\Message.cs" />
     <Compile Include="ChatEntities\TypeChat.cs" />
+    <Compile Include="ContextInitializer.cs" />
     <Compile Include="Entities\Category.cs" />
     <Compile Include="Entities\CategoryTag.cs" />
     <Compile Include="Entities\Confirmation.cs" />

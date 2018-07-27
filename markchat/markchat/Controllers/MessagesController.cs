@@ -39,23 +39,7 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
             }
             var chatRoom = await repository.Repository<ChatRoom>().FindByIdAsync(model.ChatRoomId);
-            //TODO створити чат кімнату і добавити до неї користувача (якому ми пишемо, мб тоді і передавати ід користувача кому пишемо)
-            //під час створення чату створювати папку
-            if (chatRoom == null)
-            {
-                chatRoom = new ChatRoom { CreationTime = DateTime.Now };
-                chatRoom.Messages = new List<Message>();
-                chatRoom.ChatRoomMembers = new List<ChatRoomMember>();
-                chatRoom.ChatRoomMembers.Add(new ChatRoomMember { DateTimeConnected = DateTime.Now, User = user });
-                if (model.ToUserId != null)
-                    chatRoom.ChatRoomMembers.Add(new ChatRoomMember
-                    {
-                        DateTimeConnected = DateTime.Now,
-                        User = await repository.Repository<ApplicationUser>().FindByIdAsync(model.ToUserId)
-                    });
-                await repository.SaveAsync();
-                Directory.CreateDirectory(HttpContext.Current.Server.MapPath($"~/FilesChatRooms/{chatRoom.Id}/"));
-            }
+            
             var msg = new Message { Body = model.Body, DateTime = DateTime.Now };
             msg.Attachments = new List<AttachmentMsg>();
             // відмітити шо цей користувач прочитав то повідомлення!
@@ -68,7 +52,7 @@ namespace markchat.Controllers
                 for (int i = 0; i < model.Attachments.Count; i++)
                 {
                     var pathToDir = Path.Combine(HttpContext.Current.Server.MapPath(
-                        $"~/FilesChatRooms/{chatRoom.Id}/"), 
+                        $"~/FilesChatRooms/{chatRoom.Id}/"),
                         model.AttachmentsNames[i]);
                     byte[] fileData = Convert.FromBase64String(model.Attachments[i]);
                     System.IO.File.WriteAllBytes(pathToDir, fileData);
@@ -89,7 +73,7 @@ namespace markchat.Controllers
 
         //TODO!!!
         [HttpGet]
-        [Route("GetAllMessages")]
+        [Route("GetAllMessagesToUserFormChatRoom")]
         public async Task<HttpResponseMessage> GetAllMessagesToUserFormChatRoom(GetAllMessagesToUserFormChatRoomModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
@@ -105,8 +89,8 @@ namespace markchat.Controllers
             var listMsgs = new List<ChatRoomMessageModel>();
             string pathToDir = Path.Combine(HttpContext.Current.Server.MapPath($"~/FilesChatRooms/{chatRoom.Id}/"));
             //TODO здійснити перевірку чи правильно написано!!!
-            if(chatRoom.Messages==null || chatRoom.Messages.Count==0)
-                return Request.CreateResponse(HttpStatusCode.OK, "List is empty"); 
+            if (chatRoom.Messages == null || chatRoom.Messages.Count == 0)
+                return Request.CreateResponse(HttpStatusCode.OK, "List is empty");
             var msgs = chatRoom.Messages.OrderByDescending(x => x.Id).Take(30).ToList();
             for (int i = 0; i < msgs.Count; i++)
             {
@@ -125,8 +109,65 @@ namespace markchat.Controllers
                 }
             }
             //TODO відмітити усі повідомлення чат кімнати як прочитані
-            return Request.CreateResponse(HttpStatusCode.OK, listMsgs); 
+            return Request.CreateResponse(HttpStatusCode.OK, listMsgs);
         }
         //TODO через SignalR написати метод для отримання 1 повідомлення!!!
+
+        [HttpGet]
+        [Route("GetAllPrivateUserChatRooms")]
+        public async Task<HttpResponseMessage> GetAllPrivateUserChatRooms()
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            }
+            var chatRoomsMember = await repository.Repository<ChatRoomMember>().FindAllAsync(x => x.User.Id == user.Id);
+            var privateChatRoomsMember = chatRoomsMember?.Where(item => item.ChatRoom.ChatRoomMembers.Count == 2);
+            if (privateChatRoomsMember == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Not found private chat Rooms");
+            }
+            var model = new List<PrivateUserChatRoomModel>();
+            privateChatRoomsMember.OrderByDescending(x => x.Id).ToList().ForEach(item => model.Add(
+                new PrivateUserChatRoomModel {
+                    ChatRoomId = item.ChatRoom.Id,
+                    FriendUserId = item.ChatRoom.ChatRoomMembers.FirstOrDefault(x=>x.User.Id!=user.Id)?.User.Id,
+                    FriendUserName = item.ChatRoom.ChatRoomMembers.FirstOrDefault(x => x.User.Id != user.Id)?.User.UserName
+                }));
+            return Request.CreateResponse(HttpStatusCode.OK, model);
+        }
+
+        [HttpPost]
+        [Route("CreatePrivateUserChatRoom")]
+        public async Task<HttpResponseMessage> CreatePrivateUserChatRoom(CreatePrivateUserChatRoomModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            }
+            ApplicationUser friendUser = await repository.Repository<ApplicationUser>().FindByIdAsync(model.UserId);
+            if (friendUser == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "Friend user doesn't exists");
+            }
+
+            var chatRoom = new ChatRoom { CreationTime = DateTime.Now };
+            chatRoom.Messages = new List<Message>();
+            chatRoom.TypeChat = (await repository.Repository<TypeChat>().FindAllAsync(x => x.Name == "Private"))?.FirstOrDefault();
+            chatRoom.ChatRoomMembers = new List<ChatRoomMember>
+                {
+                    new ChatRoomMember { DateTimeConnected = DateTime.Now, User = user },
+                    new ChatRoomMember { DateTimeConnected = DateTime.Now, User = friendUser }
+                };
+            await repository.SaveAsync();
+            Directory.CreateDirectory(HttpContext.Current.Server.MapPath($"~/FilesChatRooms/{chatRoom.Id}/"));
+            return Request.CreateResponse(HttpStatusCode.OK, new {
+                chatRoomId = chatRoom,
+                userId = user.Id,
+                friendUserId = friendUser.Id
+            });
+        }
     }
 }
