@@ -352,6 +352,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
+    <Folder Include="FilesChatRooms\" />
     <Folder Include="Images\UserPhotos\" />
     <Folder Include="Views\Tag\" />
   </ItemGroup>

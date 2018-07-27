@@ -110,8 +110,8 @@ namespace markchat.Controllers
 
             return Request.CreateResponse(HttpStatusCode.OK, tagChats.Select(x => new
             {
-                Id = x.Id,
-                Name = x.Name
+                x.Id,
+                x.Name
             }));
         }
 
