@@ -25,47 +25,50 @@ namespace markchat.Controllers
         [Route("SendMessage")]
         //TODO!!!
         //заточений для роботи 2 користувачів в чаті, якщо буде більше то будуть проблеми!!!!
-        //Добавити при створенні БД тип чату "приватний"
         //add SignalR
-        //чи в повідомленні все таки мати посилання на користувача, а не на мембера???
-        //два користувача можуть бути в декількох чатах, тому і такі параметри, чи можливо у вхідних параметрах відштовхуватися від типу чату?
-        //переробити на create chatroom i змінити модель, яка буде заточена під chatroom
         public async Task<HttpResponseMessage> SendMessage(SendMessageModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
-
             if (user == null)
-            {
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
-            }
             var chatRoom = await repository.Repository<ChatRoom>().FindByIdAsync(model.ChatRoomId);
-            
+            if(chatRoom==null)
+                return Request.CreateResponse(HttpStatusCode.NotFound, "Chat Room not found");
+            var chatRoomMembers = (await repository.Repository<ChatRoomMember>().FindAllAsync(x => x.ChatRoom.Id == chatRoom.Id));
+            if (chatRoomMembers == null || chatRoomMembers.FirstOrDefault(x=>x.User.Id==user.Id)==null)
+                return Request.CreateResponse(HttpStatusCode.NotFound, "You are not a member of this chat room");
             var msg = new Message { Body = model.Body, DateTime = DateTime.Now };
+            msg.DateTime = DateTime.Now;
+            msg.ChatRoom = chatRoom;
+            //? шось тут не то. навіщо посилання в повідомлення на ChatRoomMember і на кімнату , чи все так...
+            msg.ChatRoomMember = chatRoomMembers.FirstOrDefault(x => x.User.Id == user.Id);
+            //chatRoom.Messages.Add(msg);
+            //той хто відправив повідомлення - автоматично його прочитав
+            foreach (var item in chatRoomMembers)
+            {
+                await repository.Repository<ReadedMsg>().AddAsync(new ReadedMsg
+                {
+                    ChatRoomMember = item,
+                    Message = msg,
+                    Readed = item.User.Id == user.Id ? true : false,
+                    RDateTime = item.User.Id == user.Id ? DateTime.Now : new DateTime(2000, 01, 01),
+                });
+            }
             msg.Attachments = new List<AttachmentMsg>();
-            // відмітити шо цей користувач прочитав то повідомлення!
-            chatRoom.Messages.Add(msg);
-
             if (model.Attachments.Count > 0)
             {
                 //поставити обмеження на розмір атачментів
                 // і тримати тільки останні 30 повідомлень кімнати, під час написання 30-го усі попередні терти з бд
                 for (int i = 0; i < model.Attachments.Count; i++)
                 {
-                    var pathToDir = Path.Combine(HttpContext.Current.Server.MapPath(
+                    var pathToFile = Path.Combine(HttpContext.Current.Server.MapPath(
                         $"~/FilesChatRooms/{chatRoom.Id}/"),
                         model.AttachmentsNames[i]);
                     byte[] fileData = Convert.FromBase64String(model.Attachments[i]);
-                    System.IO.File.WriteAllBytes(pathToDir, fileData);
+                    System.IO.File.WriteAllBytes(pathToFile, fileData);
                     msg.Attachments.Add(new AttachmentMsg() { FileName = model.AttachmentsNames[i] });
                 }
             }
-            msg.DateTime = DateTime.Now;
-            var ChatRoomMembers = (await repository.Repository<ChatRoomMember>().FindAllAsync(x => x.ChatRoom.Id == chatRoom.Id));
-            if (ChatRoomMembers == null)
-            {
-                return Request.CreateResponse(HttpStatusCode.NotFound, "Chat Room Members not found");
-            }
-            msg.ChatRoomMember = ChatRoomMembers.FirstOrDefault(x => x.User.Id == user.Id);
             await repository.SaveAsync();
             var responce = Request.CreateResponse(HttpStatusCode.OK, "Success");
             return responce;
@@ -108,7 +111,12 @@ namespace markchat.Controllers
                     returnModel.AttachmentsNames = new List<string>(msgs[i].Attachments.Select(x => x.FileName) as IEnumerable<string>);// перевірити чи працює!!!!
                 }
             }
-            //TODO відмітити усі повідомлення чат кімнати як прочитані
+            var rmsgs = msgs.ToList().Select(x => x.Readeds.FirstOrDefault(item => item.ChatRoomMember.User.Id == user.Id));
+            foreach(var item in rmsgs)
+            {
+                item.Readed = true;
+                item.RDateTime = DateTime.Now;
+            }
             return Request.CreateResponse(HttpStatusCode.OK, listMsgs);
         }
         //TODO через SignalR написати метод для отримання 1 повідомлення!!!
@@ -151,6 +159,13 @@ namespace markchat.Controllers
             if (friendUser == null)
             {
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "Friend user doesn't exists");
+            }
+            var chatRoomsMember = await repository.Repository<ChatRoomMember>().FindAllAsync(x => x.User.Id == user.Id);
+            var privateChatRoomsMember = chatRoomsMember?.Where(item => item.ChatRoom.ChatRoomMembers.Count == 2);
+            foreach (var item in privateChatRoomsMember)
+            {
+                if(item.User.Id == model.UserId)
+                    return Request.CreateErrorResponse(HttpStatusCode.Conflict, "Chat room with this user already created");
             }
 
             var chatRoom = new ChatRoom { CreationTime = DateTime.Now };
