@@ -1386,6 +1386,8 @@ namespace markchat.Controllers
         {
             UserManager = userManager;
             AccessTokenFormat = accessTokenFormat;
+            repository = new GenericUnitOfWork();
+
         }
 
         public ApplicationUserManager UserManager

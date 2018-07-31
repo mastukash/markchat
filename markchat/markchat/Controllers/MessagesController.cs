@@ -21,6 +21,11 @@ namespace markchat.Controllers
     {
         private GenericUnitOfWork repository;
 
+        public MessagesController()
+        {
+            repository = new GenericUnitOfWork();
+        }
+
         [HttpPost]
         [Route("SendMessage")]
         //TODO!!!
