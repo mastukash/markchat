@@ -754,7 +754,7 @@ namespace markchat.Controllers
             {
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
             }
-            var allUsers = await repository.Repository<ApplicationUser>().GetAllAsync();
+            var allUsers = await repository.Repository<ApplicationUser>().FindAllAsync(x=> x.Id != user.Id);
             
             return Request.CreateResponse(HttpStatusCode.OK, allUsers.Select(x=> new
             {
