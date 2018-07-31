@@ -679,6 +679,8 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
             }
             var allTagChats = await repository.Repository<TagChat>().GetAllAsync();
+            if (allTagChats == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "No chats found");
             List<TagChatModel> model = new List<TagChatModel>();
             allTagChats.ToList().ForEach(x => model.Add(
                 new TagChatModel()
@@ -691,6 +693,32 @@ namespace markchat.Controllers
                     RootCategoryName = x.RootCategory.Name,
                 }));
             return Request.CreateResponse(HttpStatusCode.OK, model);
+        }
+
+        [HttpGet]
+        [Route("GetAllTagChats")]
+        public async Task<HttpResponseMessage> GetListTagChatsByName(ListTagChatsByNameModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            }
+            var allTagChatsByName = (await repository.Repository<TagChat>().GetAllAsync())?.Where(x => x.Name == model.TagChatName); 
+            if(allTagChatsByName == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "No chats found");
+            List<TagChatModel> returnModel = new List<TagChatModel>();
+            allTagChatsByName.ToList().ForEach(x => returnModel.Add(
+                new TagChatModel()
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    OwnerUserId = x.OwnerUser.Id,
+                    OwnerUserName = x.OwnerUser.FullName == "" ? x.OwnerUser.FullName : x.OwnerUser.PhoneNumber,
+                    RootCategoryId = x.RootCategory.Id,
+                    RootCategoryName = x.RootCategory.Name,
+                }));
+            return Request.CreateResponse(HttpStatusCode.OK, returnModel);
         }
 
         [HttpGet]
@@ -950,7 +978,7 @@ namespace markchat.Controllers
 
         [HttpGet]
         [Route("GetMemberList")]
-        public async Task<HttpResponseMessage> GetMemberList()
+        public async Task<HttpResponseMessage> GetMemberList(ListUsersTagChatModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
 
@@ -958,41 +986,38 @@ namespace markchat.Controllers
             {
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
             }
-            
 
-            Dictionary<string, UserInfo> userList = new Dictionary<string, UserInfo>();
+            List<GetMemberModel> returnModel = new List<GetMemberModel>();
+            //Dictionary<string, UserInfo> userList = new Dictionary<string, UserInfo>();
 
-            var users = await repository.Repository<ApplicationUser>().FindAllAsync(x => x.Id != user.Id);
+            var users = (await repository.Repository<TagChat>().FindByIdAsync(model.IdTagChat))?.Users;
+            if(users==null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Users doesn't exists");
 
-            users.ToList().ForEach(x =>
+            users?.ToList().ForEach(x =>
             {
-                var userInfo = new UserInfo
+                var userInfo = new GetMemberModel
                 {
                     FullName = x.FullName == "" ? x.FullName : x.PhoneNumber,
                 };
                 if (x.PhotoName != null)
                 {
                     userInfo.PhotoName = x.PhotoName;
-                    userInfo.Photo = File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName));
+                    userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
+                            $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName)));
                 }
                 else
                 {
                     userInfo.PhotoName = "userPhoto.jpg";
-                    userInfo.Photo = File.ReadAllBytes(HttpContext.Current.Server.MapPath(
-                            $"~/Images/UserPhotos/userPhoto.png"));
+                    userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
+                            $"~/Images/UserPhotos/userPhoto.png")));
                 }
-                userList.Add(x.Id, userInfo);
+                userInfo.UserId = x.Id;
+                returnModel.Add(userInfo);
             });
-           
-            var responce = Request.CreateResponse<Dictionary<string, UserInfo>>(HttpStatusCode.OK, userList);
-
+            var responce = Request.CreateResponse(HttpStatusCode.OK, returnModel);
             return responce;
         }
-
-
-
-
         #endregion  
 
 

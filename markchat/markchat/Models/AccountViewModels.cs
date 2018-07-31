@@ -108,6 +108,23 @@ namespace markchat.Models
     {
         public int TagChatId { get; set; }
     }
+    public class ListTagChatsByNameModel
+    {
+        public string TagChatName { get; set; }
+    }
+    public class ListUsersTagChatModel
+    {
+        public int IdTagChat { get; set; }
+    }
+    
+    public class GetMemberModel
+    {
+        public string UserId { get; set; }
+        public string FullName { get; set; }
+        public string PhotoName { get; set; }
+        public string Photo { get; set; }
+    }
+    
     public class ChatUserModel
     {
         public string UserId { get; set; }
