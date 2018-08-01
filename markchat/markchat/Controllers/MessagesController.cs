@@ -1,4 +1,5 @@
-﻿using markchat.Models;
+﻿using markchat.Hubs;
+using markchat.Models;
 using MarkChat.DAL.ChatEntities;
 using MarkChat.DAL.Entities;
 using MarkChat.DAL.Repository;
@@ -75,10 +76,79 @@ namespace markchat.Controllers
                 }
             }
             await repository.SaveAsync();
+
+            var hubContext = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ChatHub>();
+            hubContext.Clients.Client("").SendMsg(1, "msg");
+
             var responce = Request.CreateResponse(HttpStatusCode.OK, "Success");
             return responce;
         }
 
+        [HttpGet]
+        [Route("GetAttachmentById")]
+        public async Task<HttpResponseMessage> DownloadAttachmentById(GetAttachmentByIdModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            var att = await repository.Repository<AttachmentMsg>().FindByIdAsync(model.AttachmentId);
+            if (att == null)
+                return Request.CreateResponse(HttpStatusCode.NotFound, "Attachment not found");
+            if (user.ChatRoomsMember.FirstOrDefault(x => x.ChatRoom.Id == att.Message.ChatRoom.Id) == null)
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest, "You do not have permissions");
+            }
+            var returnModel = new
+            {
+                Id = att.Id,
+                Name = att.FileName,
+                File = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
+                            $"~/FilesChatRooms/{att.Message.ChatRoom.Id}/"), att.FileName)))
+            };
+            var responce = Request.CreateResponse(HttpStatusCode.OK, returnModel);
+            return responce;
+        }
+
+        [HttpGet]
+        [Route("GetMessageById")]
+        public async Task<HttpResponseMessage> GetMessageById(GetMessageByIdModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            var msg = await repository.Repository<Message>().FindByIdAsync(model.MessageId);
+            if (msg==null)
+                return Request.CreateResponse(HttpStatusCode.NotFound, "Message not found");
+            if (user.ChatRoomsMember.FirstOrDefault(x => x.ChatRoom.Id == msg.ChatRoom.Id) == null)
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest, "You do not have permissions");
+            }
+            var returnModel = new GetMessagedModel
+            {
+                FromUserId = msg.ChatRoomMember.User.Id,
+                FromUserName =  msg.ChatRoomMember.User.FullName != "" ? msg.ChatRoomMember.User.FullName : msg.ChatRoomMember.User.PhoneNumber,
+                Body = msg.Body,
+                ChatRoomId = msg.ChatRoom.Id,
+            };
+            if (msg.Attachments.Count > 0)
+            {
+                returnModel.Attachments = new List<AttachmentModel>();
+                for (int i = 0; i < msg.Attachments.Count; i++)
+                {
+                    var att = new AttachmentModel
+                    {
+                        Id = msg.Attachments[i].Id,
+                        Name = msg.Attachments[i].FileName,
+                        File = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
+                            $"~/FilesChatRooms/{msg.ChatRoom.Id}/"), msg.Attachments[i].FileName)))
+                    };
+
+                    returnModel.Attachments.Add(att);
+                }
+            }
+            var responce = Request.CreateResponse(HttpStatusCode.OK, returnModel);
+            return responce;
+        }
         //TODO!!!
         [HttpGet]
         [Route("GetAllMessagesToUserFormChatRoom")]

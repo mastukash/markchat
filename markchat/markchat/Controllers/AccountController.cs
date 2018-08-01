@@ -688,7 +688,7 @@ namespace markchat.Controllers
                     Id = x.Id,
                     Name = x.Name,
                     OwnerUserId = x.OwnerUser.Id,
-                    OwnerUserName = x.OwnerUser.FullName == "" ? x.OwnerUser.FullName : x.OwnerUser.PhoneNumber,
+                    OwnerUserName = x.OwnerUser.FullName != "" ? x.OwnerUser.FullName : x.OwnerUser.PhoneNumber,
                     RootCategoryId = x.RootCategory.Id,
                     RootCategoryName = x.RootCategory.Name,
                 }));

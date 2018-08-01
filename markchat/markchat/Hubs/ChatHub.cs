@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNet.SignalR;
-
+    
 namespace markchat.Hubs
 {
     //mb додати user name
@@ -14,7 +14,7 @@ namespace markchat.Hubs
         //value - hub context user id
         static Dictionary<string,string> Users = new Dictionary<string, string>();
 
-        public void SendMsg(string idUser, string message)
+        public void SendMsg(string idRoom, string idUser, string message)
         {
             if (Users.ContainsKey(idUser))
                 Clients.User(Users[idUser]).Send(message);
