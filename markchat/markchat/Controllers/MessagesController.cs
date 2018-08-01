@@ -61,7 +61,7 @@ namespace markchat.Controllers
                 });
             }
             msg.Attachments = new List<AttachmentMsg>();
-            if (model.Attachments.Count > 0)
+            if (model.Attachments!= null && model.Attachments.Count > 0 && model.Attachments[0]!=null)
             {
                 //поставити обмеження на розмір атачментів
                 // і тримати тільки останні 30 повідомлень кімнати, під час написання 30-го усі попередні терти з бд
@@ -77,8 +77,8 @@ namespace markchat.Controllers
             }
             await repository.SaveAsync();
 
-            var hubContext = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ChatHub>();
-            hubContext.Clients.Client("").SendMsg(1, "msg");
+            //var hubContext = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ChatHub>();
+            //hubContext.Clients.Client("").SendMsg(1, "msg");
 
             var responce = Request.CreateResponse(HttpStatusCode.OK, "Success");
             return responce;
@@ -109,7 +109,7 @@ namespace markchat.Controllers
             return responce;
         }
 
-        [HttpGet]
+        [HttpPost]
         [Route("GetMessageById")]
         public async Task<HttpResponseMessage> GetMessageById(GetMessageByIdModel model)
         {
@@ -119,7 +119,8 @@ namespace markchat.Controllers
             var msg = await repository.Repository<Message>().FindByIdAsync(model.MessageId);
             if (msg==null)
                 return Request.CreateResponse(HttpStatusCode.NotFound, "Message not found");
-            if (user.ChatRoomsMember.FirstOrDefault(x => x.ChatRoom.Id == msg.ChatRoom.Id) == null)
+            var member = user.ChatRoomsMember.FirstOrDefault(x => x.ChatRoom.Id == msg.ChatRoom.Id);
+            if (member == null)
             {
                 return Request.CreateResponse(HttpStatusCode.BadRequest, "You do not have permissions");
             }
@@ -146,11 +147,15 @@ namespace markchat.Controllers
                     returnModel.Attachments.Add(att);
                 }
             }
+            var r = msg.Readeds.Where(x => x.ChatRoomMember.Id == member.Id)?.FirstOrDefault();
+            if (r != null)
+                r.Readed = true;
+            await repository.SaveAsync();
             var responce = Request.CreateResponse(HttpStatusCode.OK, returnModel);
             return responce;
         }
         //TODO!!!
-        [HttpGet]
+        [HttpPost]
         [Route("GetAllMessagesToUserFormChatRoom")]
         public async Task<HttpResponseMessage> GetAllMessagesToUserFormChatRoom(GetAllMessagesToUserFormChatRoomModel model)
         {
@@ -182,16 +187,18 @@ namespace markchat.Controllers
                 //чи краще зробити якусь кнопку, щоб він міг окремим методом той файл викачати
                 if (msgs[i].Attachments != null && msgs[i].Attachments.Count > 0)
                 {
-                    returnModel.Attachments = new List<string>(msgs[i].Attachments.Select(x => Convert.ToBase64String(File.ReadAllBytes($"{pathToDir}{x.FileName}"))));// перевірити чи працює!!!!
+                    //returnModel.Attachments = new List<string>(msgs[i].Attachments.Select(x => Convert.ToBase64String(File.ReadAllBytes($"{pathToDir}{x.FileName}"))));// перевірити чи працює!!!!
+                    returnModel.AttachmentsId = new List<int>(msgs[i].Attachments.Select(x => x.Id) as IEnumerable<int>);
                     returnModel.AttachmentsNames = new List<string>(msgs[i].Attachments.Select(x => x.FileName) as IEnumerable<string>);// перевірити чи працює!!!!
                 }
             }
-            var rmsgs = msgs.ToList().Select(x => x.Readeds.FirstOrDefault(item => item.ChatRoomMember.User.Id == user.Id));
+            var rmsgs = msgs.ToList().Select(x => x.Readeds.FirstOrDefault(item => item.ChatRoomMember.User.Id == user.Id && item.Readed == false)).Take(30);
             foreach(var item in rmsgs)
             {
                 item.Readed = true;
                 item.RDateTime = DateTime.Now;
             }
+            await repository.SaveAsync();
             return Request.CreateResponse(HttpStatusCode.OK, listMsgs);
         }
         //TODO через SignalR написати метод для отримання 1 повідомлення!!!
@@ -239,8 +246,9 @@ namespace markchat.Controllers
             var privateChatRoomsMember = chatRoomsMember?.Where(item => item.ChatRoom.ChatRoomMembers.Count == 2);
             foreach (var item in privateChatRoomsMember)
             {
-                if(item.User.Id == model.UserId)
-                    return Request.CreateErrorResponse(HttpStatusCode.Conflict, "Chat room with this user already created");
+                foreach(var m in item.ChatRoom.ChatRoomMembers)
+                    if (m.User.Id == friendUser.Id)
+                        return Request.CreateErrorResponse(HttpStatusCode.Conflict, "Chat room with this user already created");
             }
 
             var chatRoom = new ChatRoom { CreationTime = DateTime.Now };
@@ -251,10 +259,11 @@ namespace markchat.Controllers
                     new ChatRoomMember { DateTimeConnected = DateTime.Now, User = user },
                     new ChatRoomMember { DateTimeConnected = DateTime.Now, User = friendUser }
                 };
+            await repository.Repository<ChatRoom>().AddAsync(chatRoom);
             await repository.SaveAsync();
             Directory.CreateDirectory(HttpContext.Current.Server.MapPath($"~/FilesChatRooms/{chatRoom.Id}/"));
             return Request.CreateResponse(HttpStatusCode.OK, new {
-                chatRoomId = chatRoom,
+                chatRoomId = chatRoom.Id,
                 userId = user.Id,
                 friendUserId = friendUser.Id
             });
