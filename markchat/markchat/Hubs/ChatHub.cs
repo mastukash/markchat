@@ -12,15 +12,15 @@ namespace markchat.Hubs
     {
         //key - ApplicationUserId
         //value - hub context user id
-        static Dictionary<string,string> Users = new Dictionary<string, string>();
+       public static Dictionary<string, string> Users { get; set; } = new Dictionary<string, string>();
 
-        public void SendMsg(string idRoom, string idUser, string message)
-        {
-            if (Users.ContainsKey(idUser))
-                Clients.User(Users[idUser]).Send(message);
-            else
-                Clients.Caller.Notification("User is offline");
-        }
+        //public void SendMsg(string idRoom, string idUser, string message)
+        //{
+        //    if (Users.ContainsKey(idUser))
+        //        Clients.User(Users[idUser]).Send(message);
+        //    else
+        //        Clients.Caller.Notification("User is offline");
+        //}
 
         public void Connect(string idUser)
         {

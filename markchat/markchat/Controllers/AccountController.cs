@@ -1705,7 +1705,6 @@ namespace markchat.Controllers
                 dbUser.AccessFailedCount++;
                 dbUser.LastSecurityCodeSendDate = DateTime.Now;
                 await repository.SaveAsync();
-
                 return BadRequest("The user name or password is incorrect");
 
             }
