@@ -60,6 +60,8 @@ namespace markchat.Controllers
                     RDateTime = item.User.Id == user.Id ? DateTime.Now : new DateTime(2000, 01, 01),
                 });
             }
+
+            //TODO to AttachmentModel
             msg.Attachments = new List<AttachmentMsg>();
             if (model.Attachments!= null && model.Attachments.Count > 0 && model.Attachments[0]!=null)
             {
@@ -162,8 +164,8 @@ namespace markchat.Controllers
         }
         //TODO!!!
         [HttpPost]
-        [Route("GetAllMessagesToUserFormChatRoom")]
-        public async Task<HttpResponseMessage> GetAllMessagesToUserFormChatRoom(GetAllMessagesToUserFormChatRoomModel model)
+        [Route("GetLast30MessagesToUserFormChatRoom")]
+        public async Task<HttpResponseMessage> GetLast30MessagesToUserFormChatRoom(GetAllMessagesToUserFormChatRoomModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)

@@ -32,7 +32,7 @@ namespace markchat
         {
             GenericUnitOfWork repository = new GenericUnitOfWork();
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
-            if (user == null && ChatHub.Users.ContainsKey(user.Id))
+            if (user != null && ChatHub.Users.ContainsKey(user.Id))
                 ChatHub.Users.Remove(user.Id);
         }
     }
