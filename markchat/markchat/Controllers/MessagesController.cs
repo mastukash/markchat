@@ -85,7 +85,8 @@ namespace markchat.Controllers
                 if (item.User.Id == user.Id)
                     continue;
                 if(ChatHub.Users.ContainsKey(item.User.Id))
-                    hubContext.Clients.Client(ChatHub.Users[item.User.Id]).SendMsg(msg.Id, msg.ChatRoom.Id,msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body);
+                    //hubContext.Clients.Client(ChatHub.Users[item.User.Id]).SendMsg(msg.Id, msg.ChatRoom.Id,msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body);
+                    hubContext.Clients.Client(ChatHub.Users[item.User.Id]).sendMsg(msg.Id, msg.ChatRoom.Id,msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body);
             }
 
             var responce = Request.CreateResponse(HttpStatusCode.OK, "Success");

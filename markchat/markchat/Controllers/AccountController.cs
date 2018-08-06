@@ -1671,6 +1671,17 @@ namespace markchat.Controllers
             return logins;
         }
 
+
+        [HttpGet]
+        [Route("GetUserId")]
+        public async Task<HttpResponseMessage> GetUserId()
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            return Request.CreateResponse(HttpStatusCode.OK, user.Id);
+        }
+
         // POST api/user/login
         [HttpPost]
         [AllowAnonymous]

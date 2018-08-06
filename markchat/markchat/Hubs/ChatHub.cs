@@ -22,18 +22,20 @@ namespace markchat.Hubs
         //        Clients.Caller.Notification("User is offline");
         //}
 
+        //включити на перевірку чи користувач авторизований!!!
+        //IsAutentificated не підходить!!!
         public void Connect(string idUser)
         {
-            var id = Context.ConnectionId;
-            if (!Users.ContainsKey(idUser))
-            {
-                Users.Add(idUser, id);
-                //Clients.Caller.onConnected(idUser,id, Users);
-            }
-            else
-            {
-                Users[idUser] = id;
-            }
+                var id = Context.ConnectionId;
+                if (!Users.ContainsKey(idUser))
+                {
+                    Users.Add(idUser, id);
+                    //Clients.Caller.onConnected(idUser,id, Users);
+                }
+                else
+                {
+                    Users[idUser] = id;
+                }
         }
 
         public override System.Threading.Tasks.Task OnDisconnected(bool stopCalled)
