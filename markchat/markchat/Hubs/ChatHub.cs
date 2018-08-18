@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNet.SignalR;
-
+    
 namespace markchat.Hubs
 {
     //mb додати user name
@@ -12,28 +12,30 @@ namespace markchat.Hubs
     {
         //key - ApplicationUserId
         //value - hub context user id
-        static Dictionary<string,string> Users = new Dictionary<string, string>();
+       public static Dictionary<string, string> Users { get; set; } = new Dictionary<string, string>();
 
-        public void SendMsg(string idUser, string message)
-        {
-            if (Users.ContainsKey(idUser))
-                Clients.User(Users[idUser]).Send(message);
-            else
-                Clients.Caller.Notification("User is offline");
-        }
+        //public void SendMsg(string idRoom, string idUser, string message)
+        //{
+        //    if (Users.ContainsKey(idUser))
+        //        Clients.User(Users[idUser]).Send(message);
+        //    else
+        //        Clients.Caller.Notification("User is offline");
+        //}
 
+        //включити на перевірку чи користувач авторизований!!!
+        //IsAutentificated не підходить!!!
         public void Connect(string idUser)
         {
-            var id = Context.ConnectionId;
-            if (!Users.ContainsKey(idUser))
-            {
-                Users.Add(idUser, id);
-                //Clients.Caller.onConnected(idUser,id, Users);
-            }
-            else
-            {
-                Users[idUser] = id;
-            }
+                var id = Context.ConnectionId;
+                if (!Users.ContainsKey(idUser))
+                {
+                    Users.Add(idUser, id);
+                    //Clients.Caller.onConnected(idUser,id, Users);
+                }
+                else
+                {
+                    Users[idUser] = id;
+                }
         }
 
         public override System.Threading.Tasks.Task OnDisconnected(bool stopCalled)

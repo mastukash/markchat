@@ -689,7 +689,7 @@ namespace markchat.Controllers
                     Id = x.Id,
                     Name = x.Name,
                     OwnerUserId = x.OwnerUser.Id,
-                    OwnerUserName = x.OwnerUser.FullName == "" ? x.OwnerUser.FullName : x.OwnerUser.PhoneNumber,
+                    OwnerUserName = x.OwnerUser.FullName != "" ? x.OwnerUser.FullName : x.OwnerUser.PhoneNumber,
                     RootCategoryId = x.RootCategory.Id,
                     RootCategoryName = x.RootCategory.Name,
                 }));
@@ -1672,6 +1672,17 @@ namespace markchat.Controllers
             return logins;
         }
 
+
+        [HttpGet]
+        [Route("GetUserId")]
+        public async Task<HttpResponseMessage> GetUserId()
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            return Request.CreateResponse(HttpStatusCode.OK, user.Id);
+        }
+
         // POST api/user/login
         [HttpPost]
         [AllowAnonymous]
@@ -1706,7 +1717,6 @@ namespace markchat.Controllers
                 dbUser.AccessFailedCount++;
                 dbUser.LastSecurityCodeSendDate = DateTime.Now;
                 await repository.SaveAsync();
-
                 return BadRequest("The user name or password is incorrect");
 
             }

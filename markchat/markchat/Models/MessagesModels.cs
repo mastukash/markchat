@@ -14,6 +14,32 @@ namespace markchat.Models
         public List<string> Attachments { get; set; }
         public List<string> AttachmentsNames { get; set; }
     }
+
+
+    public class GetMessageByIdModel
+    {
+        public int MessageId { get; set; }
+    }
+    public class GetMessagedModel
+    {
+        public string FromUserId { get; set; }
+        public string FromUserName { get; set; }
+        public int ChatRoomId { get; set; }
+        public string Body { get; set; }
+        public List<AttachmentModel> Attachments { get; set; }
+    }
+    public class AttachmentModel
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string File { get; set; }
+    }
+
+    public class GetAttachmentByIdModel
+    {
+        public int AttachmentId { get; set; }
+    }
+
     public class GetAllMessagesToUserFormChatRoomModel
     {
         public int ChatRoomId { get; set; }
@@ -22,7 +48,8 @@ namespace markchat.Models
     {
         public string Body { get; set; }
         public string UserName { get; set; }
-        public List<string> Attachments { get; set; }
+        //public List<string> Attachments { get; set; }
+        public List<int> AttachmentsId { get; set; }
         public List<string> AttachmentsNames { get; set; }
     }
     public class PrivateUserChatRoomModel
