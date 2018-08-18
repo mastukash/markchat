@@ -175,12 +175,13 @@ namespace markchat.Controllers
             return Request.CreateResponse(HttpStatusCode.OK, new { TagChatName = chat.Name, chat.Id});
         }
 
-        private async void AddCategories(Category root , List<Category> childs)
+        private  void AddCategories(Category root , List<Category> childs)
         {
             foreach (var item in childs)
             {
-                var tmp = await repository.Repository<Category>().AddAsync(new Category { Name = item.Name, Title = item.Title, ParentCategory = root });
-                await repository.SaveAsync();
+                var tmp = new Category { Name = item.Name, Title = item.Title, ParentCategory = root };
+                    repository.Repository<Category>().Add(tmp);
+                repository.SaveChanges();
                 if (item.ChildCategories.Count > 0)
                     AddCategories(tmp, item.ChildCategories);
             }
