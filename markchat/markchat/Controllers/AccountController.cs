@@ -868,7 +868,7 @@ namespace markchat.Controllers
                     Id = x.Id,
                     AuthorFullName = x.Author?.FullName,
                     AuthorPhoto = x.Author?.PhotoName,
-                    Currency = x.Currency?.Symbol.ToString(),
+                    Currency = x.Currency?.Symbol,
                     AuthorPhone = x.Author?.PhoneNumber,
                     Description = x.Description,
                     Price = x.Price,

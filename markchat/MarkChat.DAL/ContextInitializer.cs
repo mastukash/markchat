@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace MarkChat.DAL
 {
-    class ContextInitializer : DropCreateDatabaseIfModelChanges<ApplicationDbContext>
+    class ContextInitializer : CreateDatabaseIfNotExists<ApplicationDbContext>
     {
         protected override void Seed(ApplicationDbContext db)
         {
