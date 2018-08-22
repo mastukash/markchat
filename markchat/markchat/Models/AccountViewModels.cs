@@ -104,6 +104,15 @@ namespace markchat.Models
         public string Name { get; set; }
         public string Symbol { get; set; }
     }
+    //
+    public class GetMinMaxPriceFromTagChatModel
+    {
+        public int TagChatId { get; set; }
+    }
+    public class GetTagChatsByNameModel
+    {
+        public string TagChatName { get; set; }
+    }
     public class GetChatUsersModel
     {
         public int TagChatId { get; set; }
