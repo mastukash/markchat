@@ -39,6 +39,56 @@ namespace markchat.Controllers
         #region ChatTagAPI
 
         [HttpPost]
+        [Route("GetTagChatsByName")]
+        public async Task<HttpResponseMessage> GetTagChatsByName(GetTagChatsByNameModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            }
+            var tagChats = await repository.Repository<TagChat>().FindAllAsync(x => x.Name.Contains(model.TagChatName));
+            if (tagChats==null || tagChats?.Count() == 0)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Tag Chats not found");
+            }
+            var returnModel = tagChats.Select(item => new {
+                TagChatId = item.Id,
+                TagChatName = item.Name,
+                OwnerName = item.OwnerUser.FullName != "" ? item.OwnerUser.FullName : item.OwnerUser.PhoneNumber,
+                RootId = item.RootCategory.Id
+
+            });
+            return Request.CreateResponse(HttpStatusCode.OK, returnModel);
+        }
+
+        [HttpPost]
+        [Route("GetMinMaxPriceFromTagChat")]
+        public async Task<HttpResponseMessage> GetMinMaxPriceFromTagChat(GetMinMaxPriceFromTagChatModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            }
+
+            var tagChat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
+
+            if (tagChat == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
+
+            if (!tagChat.Users.Contains(user))
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "You are not chat member");
+            }
+            var min = tagChat.Messages?.Min(x => x.Price);
+            var max = tagChat.Messages?.Max(x => x.Price);
+            return Request.CreateResponse(HttpStatusCode.OK, new { MinPrice = min, MaxPrice = max});
+        }
+
+        [HttpPost]
         [Route("GetLastMessages")]
         //returns last 10 chat messages 
         public async Task<HttpResponseMessage> GetLastMessages(GetLastMessagesModel model)
