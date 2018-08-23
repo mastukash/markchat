@@ -977,7 +977,7 @@ namespace markchat.Controllers
             return Request.CreateResponse(HttpStatusCode.OK, new { TagChatName = chat.Name, chat.Id });
         }
 
-        [HttpGet]
+        [HttpPost]
         [Route("GetMemberList")]
         public async Task<HttpResponseMessage> GetMemberList(ListUsersTagChatModel model)
         {
