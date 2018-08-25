@@ -343,7 +343,7 @@ namespace markchat.Controllers
         public async Task<HttpResponseMessage> MakeInvitationRequestsFromTagChatToUser(InvitationRequestsToUsersModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
-            if (user == null)
+            if (user == null || model==null)
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
             var chat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
             if (chat == null)

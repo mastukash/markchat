@@ -34,6 +34,7 @@ namespace markchat.Models
     public class TagChatMessageModel
     {
         public int Id { get; set; }
+        public int IdUser { get; set; }
 
         //можливо варто зробити double
         public int Price { get; set; }
