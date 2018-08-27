@@ -547,7 +547,7 @@ namespace markchat.Controllers
         }
 
 
-        [HttpPost]
+        [HttpGet]
         [Route("GetAllNewRequestsFromChatsToUser")]
         public async Task<HttpResponseMessage> GetAllNewRequestsFromChatsToUser()
         {
