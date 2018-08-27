@@ -318,7 +318,7 @@ namespace markchat.Controllers
 
         [HttpPost]
         [Route("MakeInvitationRequestFromUserToTagChat")]
-        public async Task<HttpResponseMessage> MakeInvitationRequestFromUserToTagChat(InvitationRequestFromUserModel model)
+        public async Task<HttpResponseMessage> MakeInvitationRequestFromUserToTagChat(InvitationRequestFromUserToTagChatModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)
@@ -341,8 +341,8 @@ namespace markchat.Controllers
             return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Your request sent" });
         }
         [HttpPost]
-        [Route("MakeInvitationRequestsToUsers")]
-        public async Task<HttpResponseMessage> MakeInvitationRequestsFromTagChatToUser(InvitationRequestsToUsersModel model)
+        [Route("MakeInvitationRequestsFromTagChatToUsers")]
+        public async Task<HttpResponseMessage> MakeInvitationRequestsFromTagChatToUsers(InvitationRequestsFromTagChatToUsersModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null || model==null)
@@ -368,14 +368,12 @@ namespace markchat.Controllers
                 await repository.SaveAsync();
             }
             
-            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Your request sent" });
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Your requests have been sent" });
         }
-
-        
 
         [HttpPost]
         [Route("MakeInvitationRequestFromTagChatToUser")]
-        public async Task<HttpResponseMessage> MakeInvitationRequestFromTagChatToUser(InvitationRequestFromTagChatModel model)
+        public async Task<HttpResponseMessage> MakeInvitationRequestFromTagChatToUser(InvitationRequestFromTagChatToUserModel model)
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)
@@ -397,7 +395,7 @@ namespace markchat.Controllers
                 InvRequest = new InvRequest() { IsWatched = false, Confirmed = false, Denied = false, RequestDateTime = DateTime.Now }
             });
             await repository.SaveAsync();
-            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Your request sent" });
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Your request has been sent" });
         }
 
         [HttpPost]
@@ -891,6 +889,7 @@ namespace markchat.Controllers
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null || model == null)
+
             {
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
             }
