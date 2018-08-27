@@ -144,6 +144,7 @@ namespace markchat.Models
 
     public class NewRequestsFromChatsToUserModel
     {
+        public int InvRequestId { get; set; }
         public int TagChatId { get; set; }
         public string TagChatName { get; set; }
         public string OwnerId { get; set; }
@@ -154,6 +155,7 @@ namespace markchat.Models
 
     public class NewRequestsFromUsersToChatModel
     {
+        public int InvRequestId { get; set; }
         public int TagChatId { get; set; }
         public string TagChatName { get; set; }
         public string UserId { get; set; }

@@ -19,7 +19,6 @@ namespace MarkChat.DAL.Entities
         public DateTime PublicationDate { get; set; }
 
         [Required]
-        [MaxLength(90)]
         public string Description { get; set; }
 
         public virtual Currency Currency { get; set; }

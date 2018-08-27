@@ -562,7 +562,8 @@ namespace markchat.Controllers
             List<NewRequestsFromChatsToUserModel> model = new List<NewRequestsFromChatsToUserModel>();
             newRequests.ToList().ForEach(item=> model.Add(
                 new NewRequestsFromChatsToUserModel() {
-                    TagChatId = item.TagChat.Id, 
+                    TagChatId = item.TagChat.Id,
+                    InvRequestId = item.InvRequest.Id,
                     TagChatName = item.TagChat.Name,
                     OwnerId = item.TagChat.OwnerUser.Id,
                     OwnerName = item.TagChat.OwnerUser.FullName,
@@ -586,6 +587,7 @@ namespace markchat.Controllers
             newRequests.ToList().ForEach(item => model.Add(
                 new NewRequestsFromUsersToChatModel()
                 {
+                    InvRequestId = item.InvRequest.Id,
                     TagChatId = item.TagChat.Id,
                     TagChatName = item.TagChat.Name,
                     UserId = item.User.Id,

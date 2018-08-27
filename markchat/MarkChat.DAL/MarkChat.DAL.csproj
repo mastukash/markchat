@@ -151,6 +151,10 @@
     <Compile Include="Migrations\201808210624017_curreciesMigration.Designer.cs">
       <DependentUpon>201808210624017_curreciesMigration.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\201808271300369_m2.cs" />
+    <Compile Include="Migrations\201808271300369_m2.Designer.cs">
+      <DependentUpon>201808271300369_m2.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Repository\EFGenericRepository.cs" />
@@ -168,6 +172,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\201808210624017_curreciesMigration.resx">
       <DependentUpon>201808210624017_curreciesMigration.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201808271300369_m2.resx">
+      <DependentUpon>201808271300369_m2.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
