@@ -549,7 +549,7 @@ namespace markchat.Controllers
         }
 
 
-        [HttpPost]
+        [HttpGet]
         [Route("GetAllNewRequestsFromChatsToUser")]
         public async Task<HttpResponseMessage> GetAllNewRequestsFromChatsToUser()
         {
@@ -905,7 +905,8 @@ namespace markchat.Controllers
             Action<Category> search = null;
             search = delegate (Category c)
             {
-                c.Notifications.Where(y=>y.Price>=model.MinPrice && y.Price<=model.MaxPrice).ToList().ForEach(y => messages.Add(y));
+                c.Notifications.Where(y=>y.Price>=model.MinPrice && y.Price<=model.MaxPrice && y.PublicationDate>= model.FromDate && y.PublicationDate<=model.ToDate)
+                .ToList().ForEach(y => messages.Add(y));
 
                 if (c.ChildCategories.Count > 0)
                     c.ChildCategories.ForEach(x => search(x));
@@ -913,7 +914,7 @@ namespace markchat.Controllers
 
             search(category);
 
-            var responceModel = messages.Select(x =>
+            var responceModel = messages.OrderBy(x=>x.PublicationDate).Select(x =>
             {
                 var tmp = new TagChatMessageModel()
                 {
