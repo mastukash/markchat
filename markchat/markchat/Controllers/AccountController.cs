@@ -338,7 +338,7 @@ namespace markchat.Controllers
             });
 
             await repository.SaveAsync();
-            return Request.CreateResponse(HttpStatusCode.OK, "Your request sent");
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Your request sent" });
         }
         [HttpPost]
         [Route("MakeInvitationRequestsToUsers")]
@@ -368,7 +368,7 @@ namespace markchat.Controllers
                 await repository.SaveAsync();
             }
             
-            return Request.CreateResponse(HttpStatusCode.OK, "Your request sent");
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Your request sent" });
         }
 
         
@@ -397,7 +397,7 @@ namespace markchat.Controllers
                 InvRequest = new InvRequest() { IsWatched = false, Confirmed = false, Denied = false, RequestDateTime = DateTime.Now }
             });
             await repository.SaveAsync();
-            return Request.CreateResponse(HttpStatusCode.OK, "Your request sent");
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Your request sent" });
         }
 
         [HttpPost]
@@ -436,7 +436,7 @@ namespace markchat.Controllers
 
             chat.Users.Add(user);
             await repository.SaveAsync();
-            return Request.CreateResponse(HttpStatusCode.OK);
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Invitation request accepted" });
         }
 
         [HttpPost]
@@ -473,7 +473,7 @@ namespace markchat.Controllers
             invReq.InvRequest.IsWatched = true;
             chat.Users.Add(invReq.User);
             await repository.SaveAsync();
-            return Request.CreateResponse(HttpStatusCode.OK);
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Invitation request accepted" });
         }
 
         //------------------mastykash 13.07.2018--begin
@@ -508,7 +508,7 @@ namespace markchat.Controllers
             invReq.InvRequest.Confirmed = false;
             invReq.InvRequest.IsWatched = true;
             await repository.SaveAsync();
-            return Request.CreateResponse(HttpStatusCode.OK);
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "invitation request has been denied" });
         }
 
         [HttpPost]
@@ -545,7 +545,7 @@ namespace markchat.Controllers
             invReq.InvRequest.IsWatched = true;
 
             await repository.SaveAsync();
-            return Request.CreateResponse(HttpStatusCode.OK);
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "invitation request has been denied" });
         }
 
 
@@ -573,7 +573,7 @@ namespace markchat.Controllers
             return Request.CreateResponse(HttpStatusCode.OK, model);
         }
 
-        [HttpPost]
+        [HttpGet]
         [Route("GetAllNewRequestsFromUsersToChat")]
         public async Task<HttpResponseMessage> GetAllNewRequestsFromUsersToChat()
         {
@@ -882,7 +882,7 @@ namespace markchat.Controllers
 
             await repository.SaveAsync();
 
-            return Request.CreateResponse(HttpStatusCode.OK);
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Notification has been added" });
         }
         //добавати повернення списку валют
         [HttpPost]
