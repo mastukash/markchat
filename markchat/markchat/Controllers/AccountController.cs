@@ -118,6 +118,7 @@ namespace markchat.Controllers
                 var tmp = new TagChatMessageModel()
                 {
                     Id = x.Id,
+                    IdAuthor = x.Author.Id,
                     AuthorFullName = x.Author?.FullName,
                     AuthorPhoto = x.Author?.PhotoName,
                     Currency = x.Currency?.Symbol.ToString(),
@@ -280,13 +281,14 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "You are not chat member");
             }
 
-            var dbNotifications = tagChat.Messages.OrderByDescending(x => x.PublicationDate).SkipWhile(x=>x.Id!=model.LastNotificationId).Take(10);
+            var dbNotifications = tagChat.Messages.OrderByDescending(x => x.PublicationDate).SkipWhile(x=>x.Id!=model.LastNotificationId)?.Skip(1);
 
-            var responceModel = dbNotifications.Select(x =>
+            var responceModel = dbNotifications?.Take(10).Select(x =>
             {
                 var tmp = new TagChatMessageModel()
                 {
                     Id = x.Id,
+                    IdAuthor = x.Author.Id,
                     AuthorFullName = x.Author?.FullName,
                     AuthorPhoto = x.Author?.PhotoName,
                     Currency = x.Currency?.Symbol.ToString(),
@@ -916,6 +918,7 @@ namespace markchat.Controllers
                 var tmp = new TagChatMessageModel()
                 {
                     Id = x.Id,
+                    IdAuthor = x.Author.Id,
                     AuthorFullName = x.Author?.FullName,
                     AuthorPhoto = x.Author?.PhotoName,
                     Currency = x.Currency?.Symbol,
