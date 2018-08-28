@@ -1086,8 +1086,17 @@ namespace markchat.Controllers
                 if (x.PhotoName != null)
                 {
                     userInfo.PhotoName = x.PhotoName;
+                    if(File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
+                            $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName)))
                     userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
                             $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName)));
+                    else
+                    {
+                        userInfo.PhotoName = "userPhoto.jpg";
+                        userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
+                                $"~/Images/UserPhotos/userPhoto.png")));
+                    }
+
                 }
                 else
                 {
