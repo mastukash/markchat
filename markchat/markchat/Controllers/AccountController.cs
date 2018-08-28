@@ -571,14 +571,20 @@ namespace markchat.Controllers
             return Request.CreateResponse(HttpStatusCode.OK, model);
         }
 
-        [HttpGet]
+        [HttpPost]
         [Route("GetAllNewRequestsFromUsersToChat")]
-        public async Task<HttpResponseMessage> GetAllNewRequestsFromUsersToChat()
+        public async Task<HttpResponseMessage> GetAllNewRequestsFromUsersToChat(RequestsFromUsersToChat requestsFromUsersToChat) 
         {
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
-            var newRequests = await repository.Repository<InvRequestToChat>().FindAllAsync(x => x.TagChat.OwnerUser.Id == user.Id && x.InvRequest.IsWatched == false && x.InvRequest.Confirmed == false && x.InvRequest.Denied == false);
+
+            var tagChat = await repository.Repository<TagChat>().FindByIdAsync(requestsFromUsersToChat.IdTagChat);
+            if(tagChat.OwnerUser.Id != user.Id)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "You are not the owner of the tag chat");
+            }
+            var newRequests = await repository.Repository<InvRequestToChat>().FindAllAsync(x => x.TagChat.Id == requestsFromUsersToChat.IdTagChat && x.InvRequest.IsWatched == false && x.InvRequest.Confirmed == false && x.InvRequest.Denied == false);
             if (newRequests.Count() == 0)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "New requests not found");
             List<NewRequestsFromUsersToChatModel> model = new List<NewRequestsFromUsersToChatModel>();
@@ -810,6 +816,26 @@ namespace markchat.Controllers
             var allUsers = await repository.Repository<ApplicationUser>().FindAllAsync(x=> x.Id != user.Id);
             
             return Request.CreateResponse(HttpStatusCode.OK, allUsers.Select(x=> new
+            {
+                x.Id,
+                OwnerUserName = x.FullName == "" ? x.FullName : x.PhoneNumber,
+            }));
+        }
+
+
+        [HttpPost]
+        [Route("GetAllUserForTagChatInvitation")]
+        public async Task<HttpResponseMessage> GetAllUserForTagChatInvitation(GetInvitationTagChatModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            }
+            var tagChat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
+            var allUsers = await repository.Repository<ApplicationUser>().FindAllAsync(x => x.Id != user.Id && !tagChat.Users.Contains(x));
+
+            return Request.CreateResponse(HttpStatusCode.OK, allUsers.Select(x => new
             {
                 x.Id,
                 OwnerUserName = x.FullName == "" ? x.FullName : x.PhoneNumber,
@@ -1735,7 +1761,7 @@ namespace markchat.Controllers
             ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
             if (user == null)
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
-            return Request.CreateResponse(HttpStatusCode.OK, user.Id);
+            return Request.CreateResponse(HttpStatusCode.OK, new { UserId = user.Id });
         }
 
         // POST api/user/login
@@ -1778,6 +1804,9 @@ namespace markchat.Controllers
 
             var request = HttpContext.Current.Request;
             var tokenServiceUrl = request.Url.GetLeftPart(UriPartial.Authority) + request.ApplicationPath + "Token";
+
+            dbUser.AccessFailedCount = 0;
+            await repository.SaveAsync();
             using (var client = new HttpClient())
             {
                 var requestParams = new List<KeyValuePair<string, string>>

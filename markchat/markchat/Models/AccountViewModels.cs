@@ -52,10 +52,20 @@ namespace markchat.Models
     {
         public int TagChatId { get; set; }
     }
+
+    public class GetInvitationTagChatModel
+    {
+        public int TagChatId { get; set; }
+
+    }
     public class InvitationRequestsFromTagChatToUsersModel
     {
         public int TagChatId { get; set; }
         public List<string> UsersId { get; set; }
+    }
+    public class RequestsFromUsersToChat
+    {
+        public int IdTagChat { get; set; }
     }
 
     public class ChatInfoModel
