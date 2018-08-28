@@ -833,7 +833,7 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
             }
             var tagChat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
-            var allUsers = await repository.Repository<ApplicationUser>().FindAllAsync(x => x.Id != user.Id && !tagChat.Users.Contains(x));
+            var allUsers = await repository.Repository<ApplicationUser>().FindAllAsync(x => x.Id != user.Id && !tagChat.Users.Select(u=>u.Id).Contains(x.Id));
 
             return Request.CreateResponse(HttpStatusCode.OK, allUsers.Select(x => new
             {
