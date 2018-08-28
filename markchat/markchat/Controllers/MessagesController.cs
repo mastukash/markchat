@@ -287,6 +287,47 @@ namespace markchat.Controllers
             return Request.CreateResponse(HttpStatusCode.OK, model);
         }
 
+        [HttpGet]
+        [Route("GetAllUsersWithoutPrivateChatRoom")]
+        public async Task<HttpResponseMessage> GetAllUsersWithoutPrivateChatRoom()
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            }
+            var chatRoomsMember = await repository.Repository<ChatRoomMember>().FindAllAsync(x => x.User.Id == user.Id);
+            var privateChatRoomsMember = chatRoomsMember?.Where(item => item.ChatRoom.ChatRoomMembers.Count == 2);
+            var allUsers = await repository.Repository<ApplicationUser>().GetAllAsync();
+            var contain = false;
+            var model = new List<GetAllUsersWithoutPrivateChatRoomModel>();
+            foreach (var u in allUsers)
+            {
+                contain = false;
+                if (u.Id == user.Id)
+                    continue;
+                foreach (var member in privateChatRoomsMember)
+                {
+                    if(member.ChatRoom.ChatRoomMembers.Select(x=>x.User.Id).Contains(u.Id))
+                    {
+                        contain = true;
+                        break;
+                    }
+                }
+                if(!contain)
+                {
+                    model.Add(new GetAllUsersWithoutPrivateChatRoomModel
+                    {
+                        UserId = u.Id,
+                        UserName = u.FullName == "" ? u.FullName : u.PhoneNumber
+                    });
+                }
+            }
+
+            return Request.CreateResponse(HttpStatusCode.OK, model);
+        }
+
+
         [HttpPost]
         [Route("GetChatRoomIdByUserId")]
         public async Task<HttpResponseMessage> GetChatRoomIdByUserId(GetChatRoomIdByUserIdModel model)
