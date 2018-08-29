@@ -416,7 +416,9 @@ namespace markchat.Controllers
             return Request.CreateResponse(HttpStatusCode.OK, new {
                 chatRoomId = chatRoom.Id,
                 userId = user.Id,
-                friendUserId = friendUser.Id
+                userName = user.FullName == "" ? user.FullName : user.PhoneNumber,
+                friendUserId = friendUser.Id,
+                friendUserName = friendUser.FullName == "" ? friendUser.FullName : friendUser.PhoneNumber
             });
         }
     }
