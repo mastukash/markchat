@@ -202,13 +202,19 @@ namespace markchat.Controllers
                     returnModel.AttachmentsId = new List<int>(msgs[i].Attachments.Select(x => x.Id) as IEnumerable<int>);
                     returnModel.AttachmentsNames = new List<string>(msgs[i].Attachments.Select(x => x.FileName) as IEnumerable<string>);// перевірити чи працює!!!!
                 }
+                var r = msgs[i].Readeds.FirstOrDefault(x => x.ChatRoomMember.User.Id == user.Id);
+                if(r!= null && r.Readed != true)
+                {
+                    r.Readed = true;
+                    r.RDateTime = DateTime.Now;
+                }
             }
-            var rmsgs = msgs.ToList().Select(x => x.Readeds.FirstOrDefault(item => item.ChatRoomMember.User.Id == user.Id && item.Readed == false)).Take(30);
-            foreach(var item in rmsgs)
-            {
-                item.Readed = true;
-                item.RDateTime = DateTime.Now;
-            }
+            //var rmsgs = msgs.ForEach(item=>item.Readeds.Select(r=>r.ChatRoomMember.User.Id).FirstOrDefault()==user.Id.ToList().ForEach(x=>x.re)
+            //    Select(x => x.Readeds.FirstOrDefault(item => item.ChatRoomMember.User.Id == user.Id && item.Readed == false)).Take(30);
+            //foreach(var item in rmsgs)
+            //{
+                
+            //}
             await repository.SaveAsync();
             return Request.CreateResponse(HttpStatusCode.OK, listMsgs);
         }
@@ -252,13 +258,19 @@ namespace markchat.Controllers
                     returnModel.AttachmentsId = new List<int>(msgs[i].Attachments.Select(x => x.Id) as IEnumerable<int>);
                     returnModel.AttachmentsNames = new List<string>(msgs[i].Attachments.Select(x => x.FileName) as IEnumerable<string>);// перевірити чи працює!!!!
                 }
+                var r = msgs[i].Readeds.FirstOrDefault(x => x.ChatRoomMember.User.Id == user.Id);
+                if (r != null && r.Readed!=true)
+                {
+                    r.Readed = true;
+                    r.RDateTime = DateTime.Now;
+                }
             }
-            var rmsgs = msgs.ToList().Select(x => x.Readeds.FirstOrDefault(item => item.ChatRoomMember.User.Id == user.Id && item.Readed == false)).Take(30);
-            foreach (var item in rmsgs)
-            {
-                item.Readed = true;
-                item.RDateTime = DateTime.Now;
-            }
+            //var rmsgs = msgs.ToList().Select(x => x.Readeds.FirstOrDefault(item => item.ChatRoomMember.User.Id == user.Id && item.Readed == false)).Take(30);
+            //foreach (var item in rmsgs)
+            //{
+            //    item.Readed = true;
+            //    item.RDateTime = DateTime.Now;
+            //}
             await repository.SaveAsync();
             return Request.CreateResponse(HttpStatusCode.OK, listMsgs);
         }
