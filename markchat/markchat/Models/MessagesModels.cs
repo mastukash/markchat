@@ -61,6 +61,7 @@ namespace markchat.Models
         public string UserId { get; set; }
         public string Body { get; set; }
         public string UserName { get; set; }
+        public DateTime? DateTime { get; set; }
         //public List<string> Attachments { get; set; }
         public List<int> AttachmentsId { get; set; }
         public List<string> AttachmentsNames { get; set; }

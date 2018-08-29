@@ -182,7 +182,7 @@ namespace markchat.Controllers
             string pathToDir = Path.Combine(HttpContext.Current.Server.MapPath($"~/FilesChatRooms/{chatRoom.Id}/"));
             //TODO здійснити перевірку чи правильно написано!!!
             if (chatRoom.Messages == null || chatRoom.Messages.Count == 0)
-                return Request.CreateResponse(HttpStatusCode.OK, "List is empty");
+                return Request.CreateResponse(HttpStatusCode.OK, listMsgs);
             var msgs = chatRoom.Messages.OrderByDescending(x => x.Id).Take(30).ToList();
             for (int i = 0; i < msgs.Count; i++)
             {
@@ -192,6 +192,7 @@ namespace markchat.Controllers
                     Body = msgs[i].Body,
                     UserId = msgs[i].ChatRoomMember.User.Id,
                     UserName = msgs[i].ChatRoomMember.User.UserName,
+                    DateTime = msgs[i].DateTime
                 };
                 listMsgs.Add(returnModel);
                 //чи потрібно передавати усі файли??
@@ -238,7 +239,7 @@ namespace markchat.Controllers
             string pathToDir = Path.Combine(HttpContext.Current.Server.MapPath($"~/FilesChatRooms/{chatRoom.Id}/"));
             //TODO здійснити перевірку чи правильно написано!!!
             if (chatRoom.Messages == null || chatRoom.Messages.Count == 0)
-                return Request.CreateResponse(HttpStatusCode.OK, "List is empty");
+                return Request.CreateResponse(HttpStatusCode.OK, listMsgs);
             var msgs = chatRoom.Messages.OrderByDescending(x => x.Id).SkipWhile(x => x.Id != model.MsgId).Take(30).ToList();
             for (int i = 0; i < msgs.Count; i++)
             {
@@ -248,6 +249,7 @@ namespace markchat.Controllers
                     Body = msgs[i].Body,
                     UserId = msgs[i].ChatRoomMember.User.Id,
                     UserName = msgs[i].ChatRoomMember.User.UserName,
+                    DateTime = msgs[i].DateTime
                 };
                 listMsgs.Add(returnModel);
                 //чи потрібно передавати усі файли??
