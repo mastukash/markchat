@@ -44,6 +44,10 @@ namespace markchat.Models
     {
         public int ChatRoomId { get; set; }
     }
+    public class GetIdUserByIdPrivateChatRoomModel
+    {
+        public int ChatRoomId { get; set; }
+    }
     public class GetNext30MessagesToUserFormChatRoomModel
     {
         public int ChatRoomId { get; set; }
