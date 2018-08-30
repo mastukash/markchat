@@ -1789,11 +1789,11 @@ namespace markchat.Controllers
             var dbUser = (await repository.Repository<ApplicationUser>()
                 .FindAllAsync(x => x.UserName == model.Username)).FirstOrDefault();
 
-            if(user==null)
+            if(user == null && dbUser == null)
                 return BadRequest("Wrong login or password");
 
 
-            if (user != null )
+            if (user == null )
             {
             
                 if (dbUser!= null && dbUser?.AccessFailedCount == 3)
