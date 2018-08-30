@@ -8,6 +8,7 @@ using Microsoft.AspNet.SignalR;
 namespace markchat.Hubs
 {
     //mb додати user name
+    //[Authorize]
     public class ChatHub : Hub
     {
         //key - ApplicationUserId
@@ -22,8 +23,6 @@ namespace markchat.Hubs
         //        Clients.Caller.Notification("User is offline");
         //}
 
-        //включити на перевірку чи користувач авторизований!!!
-        //IsAutentificated не підходить!!!
         public void Connect(string idUser)
         {
                 var id = Context.ConnectionId;

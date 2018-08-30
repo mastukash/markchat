@@ -38,6 +38,19 @@ namespace markchat.Controllers
 
         #region ChatTagAPI
 
+        //включити кешування для картинок!!!
+        [HttpGet]
+        [Route("GetUserImage")]
+        public IHttpActionResult GetUserImage([FromUri]string UserId, [FromUri]string PhotoName)
+        {
+            string file_path = HttpContext.Current.Server.MapPath($@"..\..\Images\UserPhotos\{UserId}\{PhotoName}");
+            if (!File.Exists(file_path))
+                return null;
+            var dataBytes = File.ReadAllBytes(file_path);
+            var dataStream = new MemoryStream(dataBytes);
+            return new CustomFileResult(dataStream, Request, PhotoName);
+        }
+
         [HttpPost]
         [Route("GetTagChatsByName")]
         public async Task<HttpResponseMessage> GetTagChatsByName(GetTagChatsByNameModel model)

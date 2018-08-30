@@ -283,6 +283,7 @@
     <Compile Include="Controllers\AccountController.cs" />
     <Compile Include="Controllers\ClientController.cs" />
     <Compile Include="Controllers\MessagesController.cs" />
+    <Compile Include="CustomFileResult.cs" />
     <Compile Include="Hubs\ChatHub.cs" />
     <Compile Include="Models\DeleteUserBindingModel.cs" />
     <Compile Include="Controllers\HomeController.cs" />

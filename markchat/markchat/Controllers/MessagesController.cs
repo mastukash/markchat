@@ -38,10 +38,10 @@ namespace markchat.Controllers
             if (user == null)
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
             var chatRoom = await repository.Repository<ChatRoom>().FindByIdAsync(model.ChatRoomId);
-            if(chatRoom==null)
+            if (chatRoom == null)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat Room not found");
             var chatRoomMembers = (await repository.Repository<ChatRoomMember>().FindAllAsync(x => x.ChatRoom.Id == chatRoom.Id));
-            if (chatRoomMembers == null || chatRoomMembers.FirstOrDefault(x=>x.User.Id==user.Id)==null)
+            if (chatRoomMembers == null || chatRoomMembers.FirstOrDefault(x => x.User.Id == user.Id) == null)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "You are not a member of this chat room");
             var msg = new Message { Body = model.Body, DateTime = DateTime.Now };
             msg.DateTime = DateTime.Now;
@@ -63,7 +63,7 @@ namespace markchat.Controllers
 
             //TODO to AttachmentModel
             msg.Attachments = new List<AttachmentMsg>();
-            if (model.Attachments!= null && model.Attachments.Count > 0 && model.Attachments[0]!=null)
+            if (model.Attachments != null && model.Attachments.Count > 0 && model.Attachments[0] != null)
             {
                 //поставити обмеження на розмір атачментів
                 // і тримати тільки останні 30 повідомлень кімнати, під час написання 30-го усі попередні терти з бд
@@ -84,9 +84,9 @@ namespace markchat.Controllers
             {
                 if (item.User.Id == user.Id)
                     continue;
-                if(ChatHub.Users.ContainsKey(item.User.Id))
+                if (ChatHub.Users.ContainsKey(item.User.Id))
                     //hubContext.Clients.Client(ChatHub.Users[item.User.Id]).SendMsg(msg.Id, msg.ChatRoom.Id,msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body);
-                    hubContext.Clients.Client(ChatHub.Users[item.User.Id]).sendMsg(msg.Id, msg.ChatRoom.Id,msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body);
+                    hubContext.Clients.Client(ChatHub.Users[item.User.Id]).sendMsg(msg.Id, msg.ChatRoom.Id, msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body);
             }
 
             var responce = Request.CreateResponse(HttpStatusCode.OK, "Success");
@@ -126,7 +126,7 @@ namespace markchat.Controllers
             if (user == null)
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
             var msg = await repository.Repository<Message>().FindByIdAsync(model.MessageId);
-            if (msg==null)
+            if (msg == null)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Message not found");
             var member = user.ChatRoomsMember.FirstOrDefault(x => x.ChatRoom.Id == msg.ChatRoom.Id);
             if (member == null)
@@ -136,7 +136,7 @@ namespace markchat.Controllers
             var returnModel = new GetMessagedModel
             {
                 FromUserId = msg.ChatRoomMember.User.Id,
-                FromUserName =  msg.ChatRoomMember.User.FullName != "" ? msg.ChatRoomMember.User.FullName : msg.ChatRoomMember.User.PhoneNumber,
+                FromUserName = msg.ChatRoomMember.User.FullName != "" ? msg.ChatRoomMember.User.FullName : msg.ChatRoomMember.User.PhoneNumber,
                 Body = msg.Body,
                 ChatRoomId = msg.ChatRoom.Id,
             };
@@ -204,7 +204,7 @@ namespace markchat.Controllers
                     returnModel.AttachmentsNames = new List<string>(msgs[i].Attachments.Select(x => x.FileName) as IEnumerable<string>);// перевірити чи працює!!!!
                 }
                 var r = msgs[i].Readeds.FirstOrDefault(x => x.ChatRoomMember.User.Id == user.Id);
-                if(r!= null && r.Readed != true)
+                if (r != null && r.Readed != true)
                 {
                     r.Readed = true;
                     r.RDateTime = DateTime.Now;
@@ -214,7 +214,7 @@ namespace markchat.Controllers
             //    Select(x => x.Readeds.FirstOrDefault(item => item.ChatRoomMember.User.Id == user.Id && item.Readed == false)).Take(30);
             //foreach(var item in rmsgs)
             //{
-                
+
             //}
             await repository.SaveAsync();
             return Request.CreateResponse(HttpStatusCode.OK, listMsgs);
@@ -240,8 +240,8 @@ namespace markchat.Controllers
             //TODO здійснити перевірку чи правильно написано!!!
             if (chatRoom.Messages == null || chatRoom.Messages.Count == 0)
                 return Request.CreateResponse(HttpStatusCode.OK, listMsgs);
-            var msgs = chatRoom.Messages.Where(x=> x.Id<model.MsgId)?.OrderByDescending(x=>x.Id)?.Take(30)?.ToList();
-            if(msgs==null || msgs.Count==0)
+            var msgs = chatRoom.Messages.Where(x => x.Id < model.MsgId)?.OrderByDescending(x => x.Id)?.Take(30)?.ToList();
+            if (msgs == null || msgs.Count == 0)
                 return Request.CreateResponse(HttpStatusCode.OK, listMsgs);
             for (int i = 0; i < msgs.Count; i++)
             {
@@ -263,7 +263,7 @@ namespace markchat.Controllers
                     returnModel.AttachmentsNames = new List<string>(msgs[i].Attachments.Select(x => x.FileName) as IEnumerable<string>);// перевірити чи працює!!!!
                 }
                 var r = msgs[i].Readeds.FirstOrDefault(x => x.ChatRoomMember.User.Id == user.Id);
-                if (r != null && r.Readed!=true)
+                if (r != null && r.Readed != true)
                 {
                     r.Readed = true;
                     r.RDateTime = DateTime.Now;
@@ -290,9 +290,10 @@ namespace markchat.Controllers
             }
             var model = new List<PrivateUserChatRoomModel>();
             privateChatRoomsMember.OrderByDescending(x => x.Id).ToList().ForEach(item => model.Add(
-                new PrivateUserChatRoomModel {
+                new PrivateUserChatRoomModel
+                {
                     ChatRoomId = item.ChatRoom.Id,
-                    FriendUserId = item.ChatRoom.ChatRoomMembers.FirstOrDefault(x=>x.User.Id!=user.Id)?.User.Id,
+                    FriendUserId = item.ChatRoom.ChatRoomMembers.FirstOrDefault(x => x.User.Id != user.Id)?.User.Id,
                     FriendUserName = item.ChatRoom.ChatRoomMembers.FirstOrDefault(x => x.User.Id != user.Id)?.User.UserName
                 }));
             return Request.CreateResponse(HttpStatusCode.OK, model);
@@ -316,14 +317,14 @@ namespace markchat.Controllers
             //(await repository.Repository<ChatRoom>().FindAllAsync(x=> x.ChatRoomMembers.Select(member=> member.User.Id).Contains(user.Id)))
             //    .Select(x=>x.ChatRoomMembers)
             //    .Select(x=>x.Select(u=>u.User)).Distinct().ToList().ForEach(x=> x.ToList().ForEach(u=> results.Add(u)));
-          
+
             //results.Distinct().ToList().ForEach(item => model.Add(new GetAllUsersWithoutPrivateChatRoomModel
             //{
             //    UserId = item.Id,
             //    UserName = item.FullName == "" ? item.FullName : item.PhoneNumber
             //}));
 
-            
+
             foreach (var u in allUsers)
             {
                 contain = false;
@@ -331,13 +332,13 @@ namespace markchat.Controllers
                     continue;
                 foreach (var member in privateChatRoomsMember)
                 {
-                    if(member.ChatRoom.ChatRoomMembers.Select(x=>x.User.Id).Contains(u.Id))
+                    if (member.ChatRoom.ChatRoomMembers.Select(x => x.User.Id).Contains(u.Id))
                     {
                         contain = true;
                         break;
                     }
                 }
-                if(!contain)
+                if (!contain)
                 {
                     model.Add(new GetAllUsersWithoutPrivateChatRoomModel
                     {
@@ -370,7 +371,7 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "You are not a member of this chat room");
             if (chatRoomMembers.Count() != 2)
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "This is not a private chat");
-            var friend = chatRoomMembers.FirstOrDefault(item=>item.User.Id!=user.Id)?.User;
+            var friend = chatRoomMembers.FirstOrDefault(item => item.User.Id != user.Id)?.User;
 
             string photoName = "";
             string photo = "";
@@ -417,7 +418,7 @@ namespace markchat.Controllers
             }
             var chatRoomsMember = await repository.Repository<ChatRoomMember>().FindAllAsync(x => x.User.Id == user.Id);
             //ой хз хз
-            var privateChatRoomWithUser = chatRoomsMember?.FirstOrDefault(item => item.ChatRoom.ChatRoomMembers.Count == 2 && item.ChatRoom.ChatRoomMembers.FirstOrDefault(x=>x.User.Id == model.UserId)!=null);
+            var privateChatRoomWithUser = chatRoomsMember?.FirstOrDefault(item => item.ChatRoom.ChatRoomMembers.Count == 2 && item.ChatRoom.ChatRoomMembers.FirstOrDefault(x => x.User.Id == model.UserId) != null);
             if (privateChatRoomWithUser != null)
             {
                 return Request.CreateResponse(HttpStatusCode.OK, new { ChatRoomId = privateChatRoomWithUser.ChatRoom.Id });
@@ -460,7 +461,7 @@ namespace markchat.Controllers
             var privateChatRoomsMember = chatRoomsMember?.Where(item => item.ChatRoom.ChatRoomMembers.Count == 2);
             foreach (var item in privateChatRoomsMember)
             {
-                foreach(var m in item.ChatRoom.ChatRoomMembers)
+                foreach (var m in item.ChatRoom.ChatRoomMembers)
                     if (m.User.Id == friendUser.Id)
                         return Request.CreateErrorResponse(HttpStatusCode.Conflict, "Chat room with this user already created");
             }
@@ -476,7 +477,7 @@ namespace markchat.Controllers
             await repository.Repository<ChatRoom>().AddAsync(chatRoom);
             await repository.SaveAsync();
             Directory.CreateDirectory(HttpContext.Current.Server.MapPath($"~/FilesChatRooms/{chatRoom.Id}/"));
-            
+
             return Request.CreateResponse(HttpStatusCode.OK, new PrivateUserChatRoomModel
             {
                 ChatRoomId = chatRoom.Id,
@@ -484,5 +485,31 @@ namespace markchat.Controllers
                 FriendUserName = friendUser.FullName == "" ? friendUser.FullName : friendUser.PhoneNumber
             });
         }
+
+        [HttpGet]
+        [Route("GetMsgAttachment")]
+        public IHttpActionResult GetMsgAttachment([FromUri]string ChatRoomId, [FromUri]string AttachmentName)
+        {
+            string file_path = HttpContext.Current.Server.MapPath($@"..\..\FilesChatRooms\{ChatRoomId}\{AttachmentName}");
+            if (!File.Exists(file_path))
+                return null;
+            var dataBytes = File.ReadAllBytes(file_path);
+            var dataStream = new MemoryStream(dataBytes);
+            return new CustomFileResult(dataStream, Request, AttachmentName);
+        }
+
+        //[AllowAnonymous]
+        //[ActionName("File1")]
+        //[HttpGet]
+        //public HttpResponseMessage File1()
+        //{
+        //    var response = new HttpResponseMessage(HttpStatusCode.OK);
+        //    string file_path = HttpContext.Current.Server.MapPath(@"..\..\Images\UserPhotos\6b620b49-29da-4f49-bd41-255e93441320\profileImage.jpg");
+        //    var stream = new System.IO.FileStream(file_path, System.IO.FileMode.Open);
+        //    response.Content = new StreamContent(stream);
+        //    response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+
+        //    return response;
+        //}
     }
 }
