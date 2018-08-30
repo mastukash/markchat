@@ -176,7 +176,7 @@ namespace markchat.Controllers
             var chatRoom = await repository.Repository<ChatRoom>().FindByIdAsync(model.ChatRoomId);
             if (chatRoom == null)
             {
-                return Request.CreateResponse(HttpStatusCode.NotFound, "Chat Room not found");
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Chat Room not found");
             }
             var listMsgs = new List<ChatRoomMessageModel>();
             string pathToDir = Path.Combine(HttpContext.Current.Server.MapPath($"~/FilesChatRooms/{chatRoom.Id}/"));
@@ -313,6 +313,18 @@ namespace markchat.Controllers
             var allUsers = await repository.Repository<ApplicationUser>().GetAllAsync();
             var contain = false;
             var model = new List<GetAllUsersWithoutPrivateChatRoomModel>();
+            //var results = new List<ApplicationUser>();
+            //(await repository.Repository<ChatRoom>().FindAllAsync(x=> x.ChatRoomMembers.Select(member=> member.User.Id).Contains(user.Id)))
+            //    .Select(x=>x.ChatRoomMembers)
+            //    .Select(x=>x.Select(u=>u.User)).Distinct().ToList().ForEach(x=> x.ToList().ForEach(u=> results.Add(u)));
+          
+            //results.Distinct().ToList().ForEach(item => model.Add(new GetAllUsersWithoutPrivateChatRoomModel
+            //{
+            //    UserId = item.Id,
+            //    UserName = item.FullName == "" ? item.FullName : item.PhoneNumber
+            //}));
+
+            
             foreach (var u in allUsers)
             {
                 contain = false;
