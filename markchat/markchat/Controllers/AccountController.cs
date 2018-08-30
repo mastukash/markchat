@@ -1081,7 +1081,7 @@ namespace markchat.Controllers
             {
                 var userInfo = new GetMemberModel
                 {
-                    FullName = x.FullName == "" || x.FullName == null ? x.FullName : x.PhoneNumber,
+                    FullName = x.FullName == "" || x.FullName == null ? x.PhoneNumber : x.FullName,
                 };
                 if (x.PhotoName != null)
                 {
