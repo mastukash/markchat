@@ -39,10 +39,10 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
             var chatRoom = await repository.Repository<ChatRoom>().FindByIdAsync(model.ChatRoomId);
             if(chatRoom==null)
-                return Request.CreateResponse(HttpStatusCode.NotFound, "Chat Room not found");
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat Room not found");
             var chatRoomMembers = (await repository.Repository<ChatRoomMember>().FindAllAsync(x => x.ChatRoom.Id == chatRoom.Id));
             if (chatRoomMembers == null || chatRoomMembers.FirstOrDefault(x=>x.User.Id==user.Id)==null)
-                return Request.CreateResponse(HttpStatusCode.NotFound, "You are not a member of this chat room");
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "You are not a member of this chat room");
             var msg = new Message { Body = model.Body, DateTime = DateTime.Now };
             msg.DateTime = DateTime.Now;
             msg.ChatRoom = chatRoom;
@@ -102,10 +102,10 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
             var att = await repository.Repository<AttachmentMsg>().FindByIdAsync(model.AttachmentId);
             if (att == null)
-                return Request.CreateResponse(HttpStatusCode.NotFound, "Attachment not found");
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Attachment not found");
             if (user.ChatRoomsMember.FirstOrDefault(x => x.ChatRoom.Id == att.Message.ChatRoom.Id) == null)
             {
-                return Request.CreateResponse(HttpStatusCode.BadRequest, "You do not have permissions");
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "You do not have permissions");
             }
             var returnModel = new
             {
@@ -127,11 +127,11 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
             var msg = await repository.Repository<Message>().FindByIdAsync(model.MessageId);
             if (msg==null)
-                return Request.CreateResponse(HttpStatusCode.NotFound, "Message not found");
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Message not found");
             var member = user.ChatRoomsMember.FirstOrDefault(x => x.ChatRoom.Id == msg.ChatRoom.Id);
             if (member == null)
             {
-                return Request.CreateResponse(HttpStatusCode.BadRequest, "You do not have permissions");
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "You do not have permissions");
             }
             var returnModel = new GetMessagedModel
             {
@@ -140,9 +140,9 @@ namespace markchat.Controllers
                 Body = msg.Body,
                 ChatRoomId = msg.ChatRoom.Id,
             };
+            returnModel.Attachments = new List<AttachmentModel>();
             if (msg.Attachments.Count > 0)
             {
-                returnModel.Attachments = new List<AttachmentModel>();
                 for (int i = 0; i < msg.Attachments.Count; i++)
                 {
                     var att = new AttachmentModel
@@ -182,7 +182,7 @@ namespace markchat.Controllers
             string pathToDir = Path.Combine(HttpContext.Current.Server.MapPath($"~/FilesChatRooms/{chatRoom.Id}/"));
             //TODO здійснити перевірку чи правильно написано!!!
             if (chatRoom.Messages == null || chatRoom.Messages.Count == 0)
-                return Request.CreateResponse(HttpStatusCode.OK, "List is empty");
+                return Request.CreateResponse(HttpStatusCode.OK, listMsgs);
             var msgs = chatRoom.Messages.OrderByDescending(x => x.Id).Take(30).ToList();
             for (int i = 0; i < msgs.Count; i++)
             {
@@ -192,6 +192,7 @@ namespace markchat.Controllers
                     Body = msgs[i].Body,
                     UserId = msgs[i].ChatRoomMember.User.Id,
                     UserName = msgs[i].ChatRoomMember.User.UserName,
+                    DateTime = msgs[i].DateTime
                 };
                 listMsgs.Add(returnModel);
                 //чи потрібно передавати усі файли??
@@ -232,14 +233,16 @@ namespace markchat.Controllers
             var chatRoom = await repository.Repository<ChatRoom>().FindByIdAsync(model.ChatRoomId);
             if (chatRoom == null)
             {
-                return Request.CreateResponse(HttpStatusCode.NotFound, "Chat Room not found");
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat Room not found");
             }
             var listMsgs = new List<ChatRoomMessageModel>();
             string pathToDir = Path.Combine(HttpContext.Current.Server.MapPath($"~/FilesChatRooms/{chatRoom.Id}/"));
             //TODO здійснити перевірку чи правильно написано!!!
             if (chatRoom.Messages == null || chatRoom.Messages.Count == 0)
-                return Request.CreateResponse(HttpStatusCode.OK, "List is empty");
-            var msgs = chatRoom.Messages.OrderByDescending(x => x.Id).SkipWhile(x => x.Id != model.MsgId).Take(30).ToList();
+                return Request.CreateResponse(HttpStatusCode.OK, listMsgs);
+            var msgs = chatRoom.Messages.Where(x=> x.Id<model.MsgId)?.OrderByDescending(x=>x.Id)?.Take(30)?.ToList();
+            if(msgs==null || msgs.Count==0)
+                return Request.CreateResponse(HttpStatusCode.OK, listMsgs);
             for (int i = 0; i < msgs.Count; i++)
             {
                 var returnModel = new ChatRoomMessageModel
@@ -248,6 +251,7 @@ namespace markchat.Controllers
                     Body = msgs[i].Body,
                     UserId = msgs[i].ChatRoomMember.User.Id,
                     UserName = msgs[i].ChatRoomMember.User.UserName,
+                    DateTime = msgs[i].DateTime
                 };
                 listMsgs.Add(returnModel);
                 //чи потрібно передавати усі файли??
@@ -265,12 +269,7 @@ namespace markchat.Controllers
                     r.RDateTime = DateTime.Now;
                 }
             }
-            //var rmsgs = msgs.ToList().Select(x => x.Readeds.FirstOrDefault(item => item.ChatRoomMember.User.Id == user.Id && item.Readed == false)).Take(30);
-            //foreach (var item in rmsgs)
-            //{
-            //    item.Readed = true;
-            //    item.RDateTime = DateTime.Now;
-            //}
+
             await repository.SaveAsync();
             return Request.CreateResponse(HttpStatusCode.OK, listMsgs);
         }
@@ -353,6 +352,60 @@ namespace markchat.Controllers
 
 
         [HttpPost]
+        [Route("GetIdUserByIdPrivateChatRoom")]
+        public async Task<HttpResponseMessage> GetIdUserByIdPrivateChatRoom(GetIdUserByIdPrivateChatRoomModel model)
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
+            }
+            var chatRoom = await repository.Repository<ChatRoom>().FindByIdAsync(model.ChatRoomId);
+            if (chatRoom == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat Room not found");
+            }
+            var chatRoomMembers = (await repository.Repository<ChatRoomMember>().FindAllAsync(x => x.ChatRoom.Id == chatRoom.Id));
+            if (chatRoomMembers == null || chatRoomMembers.FirstOrDefault(x => x.User.Id == user.Id) == null)
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "You are not a member of this chat room");
+            if (chatRoomMembers.Count() != 2)
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "This is not a private chat");
+            var friend = chatRoomMembers.FirstOrDefault(item=>item.User.Id!=user.Id)?.User;
+
+            string photoName = "";
+            string photo = "";
+            if (friend.PhotoName != null)
+            {
+                photoName = friend.PhotoName;
+                if (File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
+                        $"~/Images/UserPhotos/{friend.Id}/"), friend.PhotoName)))
+                    photo = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
+                            $"~/Images/UserPhotos/{friend.Id}/"), friend.PhotoName)));
+                else
+                {
+                    photoName = "userPhoto.jpg";
+                    photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
+                            $"~/Images/UserPhotos/userPhoto.png")));
+                }
+
+            }
+            else
+            {
+                photoName = "userPhoto.jpg";
+                photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
+                        $"~/Images/UserPhotos/userPhoto.png")));
+            }
+
+            return Request.CreateResponse(HttpStatusCode.OK, new
+            {
+                UserId = friend.Id,
+                UserName = friend.FullName == "" ? friend.FullName : friend.PhoneNumber,
+                PhotoName = photoName,
+                Photo = photo
+            });
+        }
+
+        [HttpPost]
         [Route("GetChatRoomIdByUserId")]
         public async Task<HttpResponseMessage> GetChatRoomIdByUserId(GetChatRoomIdByUserIdModel model)
         {
@@ -423,10 +476,12 @@ namespace markchat.Controllers
             await repository.Repository<ChatRoom>().AddAsync(chatRoom);
             await repository.SaveAsync();
             Directory.CreateDirectory(HttpContext.Current.Server.MapPath($"~/FilesChatRooms/{chatRoom.Id}/"));
-            return Request.CreateResponse(HttpStatusCode.OK, new {
-                chatRoomId = chatRoom.Id,
-                userId = user.Id,
-                friendUserId = friendUser.Id
+            
+            return Request.CreateResponse(HttpStatusCode.OK, new PrivateUserChatRoomModel
+            {
+                ChatRoomId = chatRoom.Id,
+                FriendUserId = friendUser.Id,
+                FriendUserName = friendUser.FullName == "" ? friendUser.FullName : friendUser.PhoneNumber
             });
         }
     }

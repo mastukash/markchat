@@ -1081,7 +1081,7 @@ namespace markchat.Controllers
             {
                 var userInfo = new GetMemberModel
                 {
-                    FullName = x.FullName == "" ? x.FullName : x.PhoneNumber,
+                    FullName = x.FullName == "" || x.FullName == null ? x.FullName : x.PhoneNumber,
                 };
                 if (x.PhotoName != null)
                 {
@@ -1400,7 +1400,7 @@ namespace markchat.Controllers
                 }
                 catch
                 {
-                    return Request.CreateResponse(HttpStatusCode.BadRequest,"Invalid Email");
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest,"Invalid Email");
                 }   
             }
 
@@ -1418,12 +1418,12 @@ namespace markchat.Controllers
 
             if(user.EmailConfirmed)
             {
-                return Request.CreateResponse(HttpStatusCode.BadRequest,"Your email already confirmed");
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest,"Your email already confirmed");
             }
 
             if (model.Code == null)
             {
-                return Request.CreateResponse(HttpStatusCode.BadRequest,"Bad Request");
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest,"Bad Request");
             }
             var result = await UserManager.ConfirmEmailAsync(user.Id, model.Code);
             return Request.CreateResponse(HttpStatusCode.OK,result.Succeeded ? "ConfirmEmail" : "Error");
@@ -1785,12 +1785,17 @@ namespace markchat.Controllers
                 return this.BadRequest("Invalid user data");
             }
 
-            var user = UserManager.FindAsync(model.Username, model.Password).Result;
+            var user = await UserManager.FindAsync(model.Username, model.Password);
             var dbUser = (await repository.Repository<ApplicationUser>()
                 .FindAllAsync(x => x.UserName == model.Username)).FirstOrDefault();
-            if (user == null )
+
+            if(user==null)
+                return BadRequest("Wrong login or password");
+
+
+            if (user != null )
             {
-               
+            
                 if (dbUser!= null && dbUser?.AccessFailedCount == 3)
                 {
                     return BadRequest("Exceeded limit of attempts");
