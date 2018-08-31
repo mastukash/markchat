@@ -27,6 +27,19 @@ namespace markchat.Controllers
             repository = new GenericUnitOfWork();
         }
 
+        private string GetUrlUserPhoto(ApplicationUser user)
+        {
+            return File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
+                            $"~/Images/UserPhotos/{user.PhotoName}/")))
+                            ? Request.RequestUri.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/{user.Id}/{user.PhotoName}"
+                            : Request.RequestUri.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/userPhoto.png";
+        }
+
+        private string GetUrlAttachment(AttachmentMsg attachment)
+        {
+            return Request.RequestUri.GetLeftPart(UriPartial.Authority) + $"/api/Messages/GetMsgAttachment?ChatRoomId={attachment.Message.ChatRoom.Id}&AttachmentName={attachment.FileName}";
+        }
+
         [HttpPost]
         [Route("SendMessage")]
         //TODO!!!
@@ -149,8 +162,9 @@ namespace markchat.Controllers
                     {
                         Id = msg.Attachments[i].Id,
                         Name = msg.Attachments[i].FileName,
-                        File = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/App_Data/FilesChatRooms/{msg.ChatRoom.Id}/"), msg.Attachments[i].FileName)))
+                        File = GetUrlAttachment (msg.Attachments[i])
+                        //File = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
+                        //    $"~/App_Data/FilesChatRooms/{msg.ChatRoom.Id}/"), msg.Attachments[i].FileName)))
                     };
 
                     returnModel.Attachments.Add(att);
@@ -202,6 +216,7 @@ namespace markchat.Controllers
                     //returnModel.Attachments = new List<string>(msgs[i].Attachments.Select(x => Convert.ToBase64String(File.ReadAllBytes($"{pathToDir}{x.FileName}"))));// перевірити чи працює!!!!
                     returnModel.AttachmentsId = new List<int>(msgs[i].Attachments.Select(x => x.Id) as IEnumerable<int>);
                     returnModel.AttachmentsNames = new List<string>(msgs[i].Attachments.Select(x => x.FileName) as IEnumerable<string>);// перевірити чи працює!!!!
+                    returnModel.AttachmentUrls = new List<string>(msgs[i].Attachments.Select(x => GetUrlAttachment(x)) as IEnumerable<string>);
                 }
                 var r = msgs[i].Readeds.FirstOrDefault(x => x.ChatRoomMember.User.Id == user.Id);
                 if (r != null && r.Readed != true)
@@ -261,6 +276,7 @@ namespace markchat.Controllers
                     //returnModel.Attachments = new List<string>(msgs[i].Attachments.Select(x => Convert.ToBase64String(File.ReadAllBytes($"{pathToDir}{x.FileName}"))));// перевірити чи працює!!!!
                     returnModel.AttachmentsId = new List<int>(msgs[i].Attachments.Select(x => x.Id) as IEnumerable<int>);
                     returnModel.AttachmentsNames = new List<string>(msgs[i].Attachments.Select(x => x.FileName) as IEnumerable<string>);// перевірити чи працює!!!!
+                    returnModel.AttachmentUrls = new List<string>(msgs[i].Attachments.Select(x => GetUrlAttachment(x)) as IEnumerable<string>);
                 }
                 var r = msgs[i].Readeds.FirstOrDefault(x => x.ChatRoomMember.User.Id == user.Id);
                 if (r != null && r.Readed != true)
@@ -373,36 +389,36 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "This is not a private chat");
             var friend = chatRoomMembers.FirstOrDefault(item => item.User.Id != user.Id)?.User;
 
-            string photoName = "";
-            string photo = "";
-            if (friend.PhotoName != null)
-            {
-                photoName = friend.PhotoName;
-                if (File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
-                        $"~/Images/UserPhotos/{friend.Id}/"), friend.PhotoName)))
-                    photo = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/Images/UserPhotos/{friend.Id}/"), friend.PhotoName)));
-                else
-                {
-                    photoName = "userPhoto.jpg";
-                    photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
-                            $"~/Images/UserPhotos/userPhoto.png")));
-                }
+            //string photoName = "";
+            //string photo = "";
+            //if (friend.PhotoName != null)
+            //{
+            //    photoName = friend.PhotoName;
+            //    if (File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
+            //            $"~/Images/UserPhotos/{friend.Id}/"), friend.PhotoName)))
+            //        photo = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
+            //                $"~/Images/UserPhotos/{friend.Id}/"), friend.PhotoName)));
+            //    else
+            //    {
+            //        photoName = "userPhoto.jpg";
+            //        photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
+            //                $"~/Images/UserPhotos/userPhoto.png")));
+            //    }
 
-            }
-            else
-            {
-                photoName = "userPhoto.jpg";
-                photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
-                        $"~/Images/UserPhotos/userPhoto.png")));
-            }
+            //}
+            //else
+            //{
+            //    photoName = "userPhoto.jpg";
+            //    photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
+            //            $"~/Images/UserPhotos/userPhoto.png")));
+            //}
 
             return Request.CreateResponse(HttpStatusCode.OK, new
             {
                 UserId = friend.Id,
                 UserName = friend.FullName == "" ? friend.FullName : friend.PhoneNumber,
-                PhotoName = photoName,
-                Photo = photo
+                PhotoName = GetUrlUserPhoto(friend) == Request.RequestUri.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/userPhoto.png"? "userPhone.png":friend.PhoneNumber,
+                Photo = GetUrlUserPhoto(friend)
             });
         }
 
@@ -487,6 +503,7 @@ namespace markchat.Controllers
         }
 
         //компресування і декомпресування!!!
+        [AllowAnonymous]
         [HttpGet]
         [Route("GetMsgAttachment")]
         public IHttpActionResult GetMsgAttachment([FromUri]string ChatRoomId, [FromUri]string AttachmentName)
