@@ -188,7 +188,7 @@ namespace markchat.Controllers
             return Request.CreateResponse(HttpStatusCode.OK, tagChats.Select(x => new
             {
                 x.Id,
-                x.Name
+                x.Name,
             }));
         }
 
@@ -316,7 +316,7 @@ namespace markchat.Controllers
                     Id = x.Id,
                     IdAuthor = x.Author.Id,
                     AuthorFullName = x.Author?.FullName,
-                    AuthorPhoto = x.Author?.PhotoName,
+                    AuthorPhoto = GetUrlUserPhoto(x.Author),
                     Currency = x.Currency?.Symbol.ToString(),
                     AuthorPhone = x.Author?.PhoneNumber,
                     Description = x.Description,
@@ -590,8 +590,8 @@ namespace markchat.Controllers
                     InvRequestId = item.InvRequest.Id,
                     TagChatName = item.TagChat.Name,
                     OwnerId = item.TagChat.OwnerUser.Id,
-                    OwnerName = item.TagChat.OwnerUser.FullName,
-                   // OwnerPhotoName = item.TagChat.OwnerUser.PhotoName,
+                    OwnerName = item.TagChat.OwnerUser.FullName != "" ? item.TagChat.OwnerUser.FullName : item.TagChat.OwnerUser.PhoneNumber,
+                    OwnerUrlPhoto = GetUrlUserPhoto(item.TagChat.OwnerUser),
                     OwnerPhoneNumber = item.TagChat.OwnerUser.PhoneNumber
                 }));
             return Request.CreateResponse(HttpStatusCode.OK, model);
@@ -621,8 +621,8 @@ namespace markchat.Controllers
                     TagChatId = item.TagChat.Id,
                     TagChatName = item.TagChat.Name,
                     UserId = item.User.Id,
-                    UserName = item.User.UserName,
-                   // UserPhotoName = item.User.PhotoName,
+                    UserName = item.User.FullName != "" ? item.User.FullName : item.User.PhoneNumber,
+                    UserUrlPhoto = GetUrlUserPhoto(item.User),
                     UserPhoneNumber = item.User.PhoneNumber
                 }));
             return Request.CreateResponse(HttpStatusCode.OK, model);
@@ -727,7 +727,7 @@ namespace markchat.Controllers
                     UserId = item.Id,
                     UserName = item.UserName,
                     UserPhoneNumber = item.PhoneNumber,
-                    //UserPhotoName = item.PhotoName
+                    UserUrlPhoto = GetUrlUserPhoto(item)
                 }));
              return  Request.CreateResponse(HttpStatusCode.OK, returnModel);
         }
@@ -774,6 +774,7 @@ namespace markchat.Controllers
                     Name = x.Name,
                     OwnerUserId = x.OwnerUser.Id,
                     OwnerUserName = x.OwnerUser.FullName != "" ? x.OwnerUser.FullName : x.OwnerUser.PhoneNumber,
+                    OwnerUrlPhoto = GetUrlUserPhoto(x.OwnerUser),
                     RootCategoryId = x.RootCategory.Id,
                     RootCategoryName = x.RootCategory.Name,
                 }));
@@ -800,6 +801,7 @@ namespace markchat.Controllers
                     Name = x.Name,
                     OwnerUserId = x.OwnerUser.Id,
                     OwnerUserName = x.OwnerUser.FullName == "" ? x.OwnerUser.FullName : x.OwnerUser.PhoneNumber,
+                    OwnerUrlPhoto = GetUrlUserPhoto(x.OwnerUser),
                     RootCategoryId = x.RootCategory.Id,
                     RootCategoryName = x.RootCategory.Name,
                 }));
@@ -844,7 +846,8 @@ namespace markchat.Controllers
             return Request.CreateResponse(HttpStatusCode.OK, allUsers.Select(x=> new
             {
                 x.Id,
-                OwnerUserName = x.FullName == "" ? x.FullName : x.PhoneNumber,
+                UserName = x.FullName == "" ? x.FullName : x.PhoneNumber,
+                UserUrlPhoto = GetUrlUserPhoto(x)
             }));
         }
 
@@ -865,7 +868,8 @@ namespace markchat.Controllers
             return Request.CreateResponse(HttpStatusCode.OK, allUsers.Select(x => new
             {
                 x.Id,
-                OwnerUserName = x.FullName == "" ? x.FullName : x.PhoneNumber,
+                UserName = x.FullName == "" ? x.FullName : x.PhoneNumber,
+                UserUrlPhoto = GetUrlUserPhoto(x)
             }));
         }
 
@@ -975,7 +979,7 @@ namespace markchat.Controllers
                     Id = x.Id,
                     IdAuthor = x.Author.Id,
                     AuthorFullName = x.Author?.FullName,
-                    AuthorPhoto = x.Author?.PhotoName,
+                    AuthorPhoto = GetUrlUserPhoto(x.Author),
                     Currency = x.Currency?.Symbol,
                     AuthorPhone = x.Author?.PhoneNumber,
                     Description = x.Description,
@@ -1109,27 +1113,28 @@ namespace markchat.Controllers
                 {
                     FullName = x.FullName == "" || x.FullName == null ? x.PhoneNumber : x.FullName,
                 };
-                if (x.PhotoName != null)
-                {
-                    userInfo.PhotoName = x.PhotoName;
-                    if(File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName)))
-                    userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName)));
-                    else
-                    {
-                        userInfo.PhotoName = "userPhoto.jpg";
-                        userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
-                                $"~/Images/UserPhotos/userPhoto.png")));
-                    }
+                x.PhotoName = GetUrlUserPhoto(x);
+                //if (x.PhotoName != null)
+                //{
+                //    userInfo.PhotoName = x.PhotoName;
+                //    if(File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
+                //            $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName)))
+                //    userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
+                //            $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName)));
+                //    else
+                //    {
+                //        userInfo.PhotoName = "userPhoto.jpg";
+                //        userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
+                //                $"~/Images/UserPhotos/userPhoto.png")));
+                //    }
 
-                }
-                else
-                {
-                    userInfo.PhotoName = "userPhoto.jpg";
-                    userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
-                            $"~/Images/UserPhotos/userPhoto.png")));
-                }
+                //}
+                //else
+                //{
+                //    userInfo.PhotoName = "userPhoto.jpg";
+                //    userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
+                //            $"~/Images/UserPhotos/userPhoto.png")));
+                //}
                 userInfo.UserId = x.Id;
                 returnModel.Add(userInfo);
             });
