@@ -70,7 +70,7 @@ namespace markchat.Controllers
                 for (int i = 0; i < model.Attachments.Count; i++)
                 {
                     var pathToFile = Path.Combine(HttpContext.Current.Server.MapPath(
-                        $"~/FilesChatRooms/{chatRoom.Id}/"),
+                        $"~/App_Data/FilesChatRooms/{chatRoom.Id}/"),
                         model.AttachmentsNames[i]);
                     byte[] fileData = Convert.FromBase64String(model.Attachments[i]);
                     System.IO.File.WriteAllBytes(pathToFile, fileData);
@@ -112,7 +112,7 @@ namespace markchat.Controllers
                 Id = att.Id,
                 Name = att.FileName,
                 File = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/FilesChatRooms/{att.Message.ChatRoom.Id}/"), att.FileName)))
+                            $"~/App_Data/FilesChatRooms/{att.Message.ChatRoom.Id}/"), att.FileName)))
             };
             var responce = Request.CreateResponse(HttpStatusCode.OK, returnModel);
             return responce;
@@ -150,7 +150,7 @@ namespace markchat.Controllers
                         Id = msg.Attachments[i].Id,
                         Name = msg.Attachments[i].FileName,
                         File = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/FilesChatRooms/{msg.ChatRoom.Id}/"), msg.Attachments[i].FileName)))
+                            $"~/App_Data/FilesChatRooms/{msg.ChatRoom.Id}/"), msg.Attachments[i].FileName)))
                     };
 
                     returnModel.Attachments.Add(att);
@@ -179,7 +179,7 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Chat Room not found");
             }
             var listMsgs = new List<ChatRoomMessageModel>();
-            string pathToDir = Path.Combine(HttpContext.Current.Server.MapPath($"~/FilesChatRooms/{chatRoom.Id}/"));
+            string pathToDir = Path.Combine(HttpContext.Current.Server.MapPath($"~/App_Data/FilesChatRooms/{chatRoom.Id}/"));
             //TODO здійснити перевірку чи правильно написано!!!
             if (chatRoom.Messages == null || chatRoom.Messages.Count == 0)
                 return Request.CreateResponse(HttpStatusCode.OK, listMsgs);
@@ -236,7 +236,7 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat Room not found");
             }
             var listMsgs = new List<ChatRoomMessageModel>();
-            string pathToDir = Path.Combine(HttpContext.Current.Server.MapPath($"~/FilesChatRooms/{chatRoom.Id}/"));
+            string pathToDir = Path.Combine(HttpContext.Current.Server.MapPath($"~/App_Data/FilesChatRooms/{chatRoom.Id}/"));
             //TODO здійснити перевірку чи правильно написано!!!
             if (chatRoom.Messages == null || chatRoom.Messages.Count == 0)
                 return Request.CreateResponse(HttpStatusCode.OK, listMsgs);
@@ -379,14 +379,14 @@ namespace markchat.Controllers
             {
                 photoName = friend.PhotoName;
                 if (File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
-                        $"~/Images/UserPhotos/{friend.Id}/"), friend.PhotoName)))
+                        $"~/App_Data/Images/UserPhotos/{friend.Id}/"), friend.PhotoName)))
                     photo = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/Images/UserPhotos/{friend.Id}/"), friend.PhotoName)));
+                            $"~/App_Data/Images/UserPhotos/{friend.Id}/"), friend.PhotoName)));
                 else
                 {
                     photoName = "userPhoto.jpg";
                     photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
-                            $"~/Images/UserPhotos/userPhoto.png")));
+                            $"~/App_Data/Images/UserPhotos/userPhoto.png")));
                 }
 
             }
@@ -394,7 +394,7 @@ namespace markchat.Controllers
             {
                 photoName = "userPhoto.jpg";
                 photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
-                        $"~/Images/UserPhotos/userPhoto.png")));
+                        $"~/App_Data/Images/UserPhotos/userPhoto.png")));
             }
 
             return Request.CreateResponse(HttpStatusCode.OK, new
@@ -434,7 +434,7 @@ namespace markchat.Controllers
                 };
             await repository.Repository<ChatRoom>().AddAsync(chatRoom);
             await repository.SaveAsync();
-            Directory.CreateDirectory(HttpContext.Current.Server.MapPath($"~/FilesChatRooms/{chatRoom.Id}/"));
+            Directory.CreateDirectory(HttpContext.Current.Server.MapPath($"~/App_Data/FilesChatRooms/{chatRoom.Id}/"));
             return Request.CreateResponse(HttpStatusCode.Created, new
             {
                 chatRoomId = chatRoom.Id,
@@ -476,7 +476,7 @@ namespace markchat.Controllers
                 };
             await repository.Repository<ChatRoom>().AddAsync(chatRoom);
             await repository.SaveAsync();
-            Directory.CreateDirectory(HttpContext.Current.Server.MapPath($"~/FilesChatRooms/{chatRoom.Id}/"));
+            Directory.CreateDirectory(HttpContext.Current.Server.MapPath($"~/App_Data/FilesChatRooms/{chatRoom.Id}/"));
 
             return Request.CreateResponse(HttpStatusCode.OK, new PrivateUserChatRoomModel
             {
@@ -486,11 +486,12 @@ namespace markchat.Controllers
             });
         }
 
+        //компресування і декомпресування!!!
         [HttpGet]
         [Route("GetMsgAttachment")]
         public IHttpActionResult GetMsgAttachment([FromUri]string ChatRoomId, [FromUri]string AttachmentName)
         {
-            string file_path = HttpContext.Current.Server.MapPath($@"..\..\FilesChatRooms\{ChatRoomId}\{AttachmentName}");
+            string file_path = HttpContext.Current.Server.MapPath($@"..\..\App_Data\FilesChatRooms\{ChatRoomId}\{AttachmentName}");
             if (!File.Exists(file_path))
                 return null;
             var dataBytes = File.ReadAllBytes(file_path);
