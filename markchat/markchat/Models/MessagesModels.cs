@@ -69,6 +69,8 @@ namespace markchat.Models
         //public List<string> Attachments { get; set; }
         public List<int> AttachmentsId { get; set; }
         public List<string> AttachmentsNames { get; set; }
+        public List<string> AttachmentUrls { get; set; }
+
     }
 
     public class GetAllUsersWithoutPrivateChatRoomModel
