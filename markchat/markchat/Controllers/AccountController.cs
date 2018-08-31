@@ -38,10 +38,19 @@ namespace markchat.Controllers
 
         #region ChatTagAPI
 
+       
+
+        string GetUrlUserPhoto(ApplicationUser user)
+        {
+            return File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
+                            $"~/Images/UserPhotos/{user.PhotoName}/")))
+                            ? Request.RequestUri.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/{user.Id}/{user.PhotoName}"
+                            : Request.RequestUri.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/userPhoto.png";
+        }
+
         //попередньо обов'язково зжимати картинки!!!
         //включити кешування для картинок!!!
         //компресування і декомпресування!!!
-        [AllowAnonymous]
         [HttpGet]
         [Route("GetUserImage")]
         public IHttpActionResult GetUserImage([FromUri]string UserId, [FromUri]string PhotoName)
@@ -72,7 +81,9 @@ namespace markchat.Controllers
             var returnModel = tagChats.Select(item => new {
                 TagChatId = item.Id,
                 TagChatName = item.Name,
+                OwnerId = item.OwnerUser.Id,
                 OwnerName = item.OwnerUser.FullName != "" ? item.OwnerUser.FullName : item.OwnerUser.PhoneNumber,
+                OwnerUrlPhoto = GetUrlUserPhoto(item.OwnerUser),
                 RootId = item.RootCategory.Id
 
             });
@@ -114,7 +125,6 @@ namespace markchat.Controllers
             if (user == null)
             {
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
-
             }
 
             var tagChat = await repository.Repository<TagChat>().FindByIdAsync(model.TagChatId);
@@ -136,7 +146,7 @@ namespace markchat.Controllers
                     Id = x.Id,
                     IdAuthor = x.Author.Id,
                     AuthorFullName = x.Author?.FullName,
-                    AuthorPhoto = x.Author?.PhotoName,
+                    AuthorPhoto = GetUrlUserPhoto(x.Author),
                     Currency = x.Currency?.Symbol.ToString(),
                     AuthorPhone = x.Author?.PhoneNumber,
                     Description = x.Description,
