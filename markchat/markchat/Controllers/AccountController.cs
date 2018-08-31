@@ -46,9 +46,9 @@ namespace markchat.Controllers
         [Route("GetUserImage")]
         public IHttpActionResult GetUserImage([FromUri]string UserId, [FromUri]string PhotoName)
         {
-            string file_path = HttpContext.Current.Server.MapPath($@"..\..\App_Data\Images\UserPhotos\{UserId}\{PhotoName}");
+            string file_path = HttpContext.Current.Server.MapPath($@"..\..\Images\UserPhotos\{UserId}\{PhotoName}");
             if (!File.Exists(file_path))
-                file_path = HttpContext.Current.Server.MapPath($@"..\..\App_Data\Images\UserPhotos\userPhoto.png");
+                file_path = HttpContext.Current.Server.MapPath($@"..\..\Images\UserPhotos\userPhoto.png");
             var dataBytes = File.ReadAllBytes(file_path);
             var dataStream = new MemoryStream(dataBytes);
             return new CustomFileResult(dataStream, Request, PhotoName);
@@ -1103,14 +1103,14 @@ namespace markchat.Controllers
                 {
                     userInfo.PhotoName = x.PhotoName;
                     if(File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/App_Data/Images/UserPhotos/{x.Id}/"), x.PhotoName)))
+                            $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName)))
                     userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/App_Data/Images/UserPhotos/{x.Id}/"), x.PhotoName)));
+                            $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName)));
                     else
                     {
                         userInfo.PhotoName = "userPhoto.jpg";
                         userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
-                                $"~/App_Data/Images/UserPhotos/userPhoto.png")));
+                                $"~/Images/UserPhotos/userPhoto.png")));
                     }
 
                 }
@@ -1118,7 +1118,7 @@ namespace markchat.Controllers
                 {
                     userInfo.PhotoName = "userPhoto.jpg";
                     userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
-                            $"~/App_Data/Images/UserPhotos/userPhoto.png")));
+                            $"~/Images/UserPhotos/userPhoto.png")));
                 }
                 userInfo.UserId = x.Id;
                 returnModel.Add(userInfo);
@@ -1353,12 +1353,12 @@ namespace markchat.Controllers
             {
                 user.PhotoName = model.PhotoName;
                 byte[] fileData = Convert.FromBase64String(model.File);
-                if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/App_Data/Images/UserPhotos/"), $"{user.Id}")))
-                    Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/App_Data/Images/UserPhotos/"), $"{user.Id}"));
+                if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Id}")))
+                    Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Id}"));
                 //Compressor c = new Compressor();
                 //fileData = c.Wrap(fileData);
                 var pathToFile = Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/App_Data/Images/UserPhotos/{user.Id}/"), model.PhotoName
+                            $"~/Images/UserPhotos/{user.Id}/"), model.PhotoName
                             );
                 //if(Path.GetExtension(pathToFile)!="jpg")
                 //{
@@ -1461,12 +1461,12 @@ namespace markchat.Controllers
             {
                 user.PhotoName = model.PhotoName;
                 byte[] fileData = model.File;
-                if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/App_Data/Images/UserPhotos/"), $"{user.Id}")))
-                    Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/App_Data/Images/UserPhotos/"), $"{user.Id}"));
+                if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Id}")))
+                    Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Id}"));
                 //Compressor c = new Compressor();
                 //fileData = c.Wrap(fileData);
                 System.IO.File.WriteAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/App_Data/Images/UserPhotos/{user.Id}/"), model.PhotoName
+                            $"~/Images/UserPhotos/{user.Id}/"), model.PhotoName
                             ), fileData);
 
                 await repository.SaveAsync();
@@ -1879,12 +1879,12 @@ namespace markchat.Controllers
         //    {
         //        user.PhotoName = model.PhotoName;
         //        byte[] fileData = model.File;
-        //        if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/App_Data/Images/UserPhotos/"), $"{user.Email}")))
-        //            Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/App_Data/Images/UserPhotos/"), $"{user.Email}"));
+        //        if (!Directory.Exists(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Email}")))
+        //            Directory.CreateDirectory(Path.Combine(HttpContext.Current.Server.MapPath("~/Images/UserPhotos/"), $"{user.Email}"));
         //        //Compressor c = new Compressor();
         //        //fileData = c.Wrap(fileData);
         //        System.IO.File.WriteAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-        //                    $"~/App_Data/Images/UserPhotos/{user.Email}/"), model.PhotoName
+        //                    $"~/Images/UserPhotos/{user.Email}/"), model.PhotoName
         //                    ), fileData);
 
         //    }

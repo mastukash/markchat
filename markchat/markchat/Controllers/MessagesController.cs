@@ -379,14 +379,14 @@ namespace markchat.Controllers
             {
                 photoName = friend.PhotoName;
                 if (File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
-                        $"~/App_Data/Images/UserPhotos/{friend.Id}/"), friend.PhotoName)))
+                        $"~/Images/UserPhotos/{friend.Id}/"), friend.PhotoName)))
                     photo = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/App_Data/Images/UserPhotos/{friend.Id}/"), friend.PhotoName)));
+                            $"~/Images/UserPhotos/{friend.Id}/"), friend.PhotoName)));
                 else
                 {
                     photoName = "userPhoto.jpg";
                     photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
-                            $"~/App_Data/Images/UserPhotos/userPhoto.png")));
+                            $"~/Images/UserPhotos/userPhoto.png")));
                 }
 
             }
@@ -394,7 +394,7 @@ namespace markchat.Controllers
             {
                 photoName = "userPhoto.jpg";
                 photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
-                        $"~/App_Data/Images/UserPhotos/userPhoto.png")));
+                        $"~/Images/UserPhotos/userPhoto.png")));
             }
 
             return Request.CreateResponse(HttpStatusCode.OK, new
