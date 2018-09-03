@@ -22,7 +22,7 @@ namespace markchat.Controllers
     {
         private GenericUnitOfWork repository;
 
-        public MessagesController()
+        public MessagesController() 
         {
             repository = new GenericUnitOfWork();
         }
@@ -30,7 +30,7 @@ namespace markchat.Controllers
         private string GetUrlUserPhoto(ApplicationUser user)
         {
             return File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/Images/UserPhotos/{user.PhotoName}/")))
+                            $"/Images/UserPhotos/{user.Id}/{user.PhotoName}")))
                             ? Request.RequestUri.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/{user.Id}/{user.PhotoName}"
                             : Request.RequestUri.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/userPhoto.png";
         }
@@ -93,13 +93,14 @@ namespace markchat.Controllers
             await repository.SaveAsync();
 
             var hubContext = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ChatHub>();
+            hubContext.Clients.All.NotifyAll(msg.Id, msg.ChatRoom.Id, msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body, msg.DateTime);
             foreach (var item in chatRoom.ChatRoomMembers)
             {
                 if (item.User.Id == user.Id)
                     continue;
                 if (ChatHub.Users.ContainsKey(item.User.Id))
                     //hubContext.Clients.Client(ChatHub.Users[item.User.Id]).SendMsg(msg.Id, msg.ChatRoom.Id,msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body);
-                    hubContext.Clients.Client(ChatHub.Users[item.User.Id]).sendMsg(msg.Id, msg.ChatRoom.Id, msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body);
+                    hubContext.Clients.Client(ChatHub.Users[item.User.Id]).sendMsg(msg.Id, msg.ChatRoom.Id, msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body, msg.DateTime);
             }
 
             var responce = Request.CreateResponse(HttpStatusCode.OK, "Success");

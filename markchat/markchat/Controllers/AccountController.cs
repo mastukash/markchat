@@ -43,7 +43,7 @@ namespace markchat.Controllers
         string GetUrlUserPhoto(ApplicationUser user)
         {
             return File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"~/Images/UserPhotos/{user.PhotoName}/")))
+                            $"/Images/UserPhotos/{user.Id}/{user.PhotoName}")))
                             ? Request.RequestUri.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/{user.Id}/{user.PhotoName}"
                             : Request.RequestUri.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/userPhoto.png";
         }
