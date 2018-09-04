@@ -136,5 +136,8 @@
         {
             $("#messagess").append('<p style="text-align:right;">' + msgChatRoomMemberUserUserName + ':</p><p>' + msgBody + '</p>');
         }
+        chat.client.notifyAll = function (msgId, msgChatRoomId, msgChatRoomMemberUserId, msgChatRoomMemberUserUserName, msgBody) {
+            $("#messagess").append('<p style="text-align:right;">' + msgChatRoomMemberUserUserName + ':</p><p>' + msgBody + '</p>');
+        }
     </script>
 }
