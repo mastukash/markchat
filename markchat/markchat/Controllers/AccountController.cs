@@ -1863,6 +1863,7 @@ namespace markchat.Controllers
             };
                 var requestParamsFormUrlEncoded = new FormUrlEncodedContent(requestParams);
                 var tokenServiceResponse = await client.PostAsync(tokenServiceUrl, requestParamsFormUrlEncoded);
+                
                 return this.ResponseMessage(tokenServiceResponse);
             }
         }

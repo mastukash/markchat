@@ -169,6 +169,8 @@ using Microsoft.Owin.Security.OAuth;
 using markchat.Models;
 using MarkChat.DAL;
 using MarkChat.DAL.Entities;
+using System.IO;
+using System.Web;
 
 namespace markchat.Providers
 {
@@ -203,7 +205,14 @@ namespace markchat.Providers
             ClaimsIdentity cookiesIdentity = await user.GenerateUserIdentityAsync(userManager,
                 CookieAuthenticationDefaults.AuthenticationType);
 
+
+            
             AuthenticationProperties properties = CreateProperties(user.UserName);
+            properties.Dictionary.Add("userPhotoUrl", File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
+                            $"/Images/UserPhotos/{user.Id}/{user.PhotoName}")))
+                            ? HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/{user.Id}/{user.PhotoName}"
+                            : HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/userPhoto.png");
+
             AuthenticationTicket ticket = new AuthenticationTicket(oAuthIdentity, properties);
             context.Validated(ticket);
             context.Request.Context.Authentication.SignIn(cookiesIdentity);
@@ -215,6 +224,8 @@ namespace markchat.Providers
             {
                 context.AdditionalResponseParameters.Add(property.Key, property.Value);
             }
+           
+            //context.AdditionalResponseParameters
 
             return Task.FromResult<object>(null);
         }
