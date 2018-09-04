@@ -207,11 +207,7 @@ namespace markchat.Providers
 
 
             
-            AuthenticationProperties properties = CreateProperties(user.UserName);
-            properties.Dictionary.Add("userPhotoUrl", File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
-                            $"/Images/UserPhotos/{user.Id}/{user.PhotoName}")))
-                            ? HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/{user.Id}/{user.PhotoName}"
-                            : HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/userPhoto.png");
+            AuthenticationProperties properties = CreateProperties(user);           
 
             AuthenticationTicket ticket = new AuthenticationTicket(oAuthIdentity, properties);
             context.Validated(ticket);
@@ -256,12 +252,16 @@ namespace markchat.Providers
             return Task.FromResult<object>(null);
         }
 
-        public static AuthenticationProperties CreateProperties(string userName)
+        public static AuthenticationProperties CreateProperties(ApplicationUser user)
         {
             IDictionary<string, string> data = new Dictionary<string, string>
             {
-                { "userName", userName }
+                { "userName", user.UserName == "" ? user.PhoneNumber : user.FullName  }
             };
+            data.Add("userUrlPhoto", File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
+                            $"/Images/UserPhotos/{user.Id}/{user.PhotoName}")))
+                            ? HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/{user.Id}/{user.PhotoName}"
+                            : HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/userPhoto.png");
             return new AuthenticationProperties(data);
         }
     }

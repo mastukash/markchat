@@ -102,9 +102,7 @@ namespace markchat.Controllers
                     //hubContext.Clients.Client(ChatHub.Users[item.User.Id]).SendMsg(msg.Id, msg.ChatRoom.Id,msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body);
                     hubContext.Clients.Client(ChatHub.Users[item.User.Id]).sendMsg(msg.Id, msg.ChatRoom.Id, msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body, msg.DateTime);
             }
-
-            var responce = Request.CreateResponse(HttpStatusCode.OK, "Success");
-            return responce;
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Success" }); 
         }
 
         [HttpGet]
@@ -207,6 +205,7 @@ namespace markchat.Controllers
                     Body = msgs[i].Body,
                     UserId = msgs[i].ChatRoomMember.User.Id,
                     UserName = msgs[i].ChatRoomMember.User.UserName,
+                    UserUrlPhoto = GetUrlUserPhoto(msgs[i].ChatRoomMember.User),
                     DateTime = msgs[i].DateTime
                 };
                 listMsgs.Add(returnModel);
@@ -267,6 +266,7 @@ namespace markchat.Controllers
                     Body = msgs[i].Body,
                     UserId = msgs[i].ChatRoomMember.User.Id,
                     UserName = msgs[i].ChatRoomMember.User.UserName,
+                    UserUrlPhoto = GetUrlUserPhoto(msgs[i].ChatRoomMember.User),
                     DateTime = msgs[i].DateTime
                 };
                 listMsgs.Add(returnModel);
@@ -311,7 +311,8 @@ namespace markchat.Controllers
                 {
                     ChatRoomId = item.ChatRoom.Id,
                     FriendUserId = item.ChatRoom.ChatRoomMembers.FirstOrDefault(x => x.User.Id != user.Id)?.User.Id,
-                    FriendUserName = item.ChatRoom.ChatRoomMembers.FirstOrDefault(x => x.User.Id != user.Id)?.User.UserName
+                    FriendUserName = item.ChatRoom.ChatRoomMembers.FirstOrDefault(x => x.User.Id != user.Id)?.User.UserName,
+                    UserUrlPhoto = GetUrlUserPhoto(item.User)
                 }));
             return Request.CreateResponse(HttpStatusCode.OK, model);
         }

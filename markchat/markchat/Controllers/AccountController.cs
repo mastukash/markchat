@@ -694,7 +694,7 @@ namespace markchat.Controllers
             //    Title = model.TitleNewCat
             //});
             await repository.SaveAsync();
-            return Request.CreateResponse(HttpStatusCode.OK, "Category added");
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Category added" });
         }
 
         /// <summary>
@@ -774,7 +774,7 @@ namespace markchat.Controllers
                     Name = x.Name,
                     OwnerUserId = x.OwnerUser.Id,
                     OwnerUserName = x.OwnerUser.FullName != "" ? x.OwnerUser.FullName : x.OwnerUser.PhoneNumber,
-                    OwnerUrlPhoto = GetUrlUserPhoto(x.OwnerUser),
+                    //OwnerUrlPhoto = GetUrlUserPhoto(x.OwnerUser),
                     RootCategoryId = x.RootCategory.Id,
                     RootCategoryName = x.RootCategory.Name,
                 }));
@@ -801,7 +801,7 @@ namespace markchat.Controllers
                     Name = x.Name,
                     OwnerUserId = x.OwnerUser.Id,
                     OwnerUserName = x.OwnerUser.FullName == "" ? x.OwnerUser.FullName : x.OwnerUser.PhoneNumber,
-                    OwnerUrlPhoto = GetUrlUserPhoto(x.OwnerUser),
+                    //OwnerUrlPhoto = GetUrlUserPhoto(x.OwnerUser),
                     RootCategoryId = x.RootCategory.Id,
                     RootCategoryName = x.RootCategory.Name,
                 }));
@@ -1112,30 +1112,10 @@ namespace markchat.Controllers
                 var userInfo = new GetMemberModel
                 {
                     FullName = x.FullName == "" || x.FullName == null ? x.PhoneNumber : x.FullName,
+                    UserId = x.Id,
+                    UserUrlPhoto = GetUrlUserPhoto(x)
                 };
-                x.PhotoName = GetUrlUserPhoto(x);
-                //if (x.PhotoName != null)
-                //{
-                //    userInfo.PhotoName = x.PhotoName;
-                //    if(File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
-                //            $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName)))
-                //    userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-                //            $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName)));
-                //    else
-                //    {
-                //        userInfo.PhotoName = "userPhoto.jpg";
-                //        userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
-                //                $"~/Images/UserPhotos/userPhoto.png")));
-                //    }
-
-                //}
-                //else
-                //{
-                //    userInfo.PhotoName = "userPhoto.jpg";
-                //    userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
-                //            $"~/Images/UserPhotos/userPhoto.png")));
-                //}
-                userInfo.UserId = x.Id;
+                
                 returnModel.Add(userInfo);
             });
             var responce = Request.CreateResponse(HttpStatusCode.OK, returnModel);
@@ -1383,7 +1363,7 @@ namespace markchat.Controllers
 
             }
             await repository.SaveAsync();
-            return Request.CreateResponse(HttpStatusCode.OK, "Success");
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Success" });
         }
 
 
@@ -1402,7 +1382,7 @@ namespace markchat.Controllers
 
             await repository.SaveAsync();
 
-            return Request.CreateResponse(HttpStatusCode.OK,"FullName changed");
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "FullName changed" });
         }
 
         [HttpPost]
@@ -1438,7 +1418,7 @@ namespace markchat.Controllers
 
             await repository.SaveAsync();
 
-            return Request.CreateResponse(HttpStatusCode.OK, "Email changed. Please confirm it.");
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Email changed. Please confirm it." });
         }
         
         [HttpPost]
@@ -1457,7 +1437,8 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest,"Bad Request");
             }
             var result = await UserManager.ConfirmEmailAsync(user.Id, model.Code);
-            return Request.CreateResponse(HttpStatusCode.OK,result.Succeeded ? "ConfirmEmail" : "Error");
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = result.Succeeded ? "ConfirmEmail" : "Error" });
+            
         }
 
         [HttpPost]
@@ -1485,9 +1466,8 @@ namespace markchat.Controllers
                             ), fileData);
 
                 await repository.SaveAsync();
-
-                return Request.CreateResponse(HttpStatusCode.OK, "Photo changed.");
-
+                return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Photo changed" });
+                
             }
 
 
@@ -1740,7 +1720,7 @@ namespace markchat.Controllers
                 ClaimsIdentity cookieIdentity = await user.GenerateUserIdentityAsync(UserManager,
                     CookieAuthenticationDefaults.AuthenticationType);
 
-                AuthenticationProperties properties = ApplicationOAuthProvider.CreateProperties(user.UserName);
+                AuthenticationProperties properties = ApplicationOAuthProvider.CreateProperties(user);
                 Authentication.SignIn(properties, oAuthIdentity, cookieIdentity);
             }
             else
