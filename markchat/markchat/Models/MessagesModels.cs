@@ -77,6 +77,7 @@ namespace markchat.Models
     {
         public string UserId { get; set; }
         public string UserName { get; set; }
+        public string UserUrlPhoto{ get; set; }
     }
     public class PrivateUserChatRoomModel
     {

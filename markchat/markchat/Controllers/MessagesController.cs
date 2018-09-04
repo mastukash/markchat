@@ -359,7 +359,8 @@ namespace markchat.Controllers
                     model.Add(new GetAllUsersWithoutPrivateChatRoomModel
                     {
                         UserId = u.Id,
-                        UserName = u.FullName == "" ? u.FullName : u.PhoneNumber
+                        UserName = u.FullName == "" ? u.FullName : u.PhoneNumber,
+                        UserUrlPhoto = GetUrlUserPhoto(u)
                     });
                 }
             }

@@ -727,7 +727,7 @@ namespace markchat.Controllers
                     UserId = item.Id,
                     UserName = item.UserName,
                     UserPhoneNumber = item.PhoneNumber,
-                    UserUrlPhoto = GetUrlUserPhoto(item)
+                    //UserUrlPhoto = GetUrlUserPhoto(item)
                 }));
              return  Request.CreateResponse(HttpStatusCode.OK, returnModel);
         }
