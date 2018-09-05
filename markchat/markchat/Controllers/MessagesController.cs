@@ -91,7 +91,22 @@ namespace markchat.Controllers
                 }
             }
             await repository.SaveAsync();
-
+            var returnModel = new ChatRoomMessageModel
+            {
+                Id = msg.Id,
+                Body = msg.Body,
+                UserId = msg.ChatRoomMember.User.Id,
+                UserName = msg.ChatRoomMember.User.UserName,
+                UserUrlPhoto = GetUrlUserPhoto(msg.ChatRoomMember.User),
+                DateTime = msg.DateTime
+            };
+            if (msg.Attachments != null && msg.Attachments.Count > 0)
+            {
+                //returnModel.Attachments = new List<string>(msgs[i].Attachments.Select(x => Convert.ToBase64String(File.ReadAllBytes($"{pathToDir}{x.FileName}"))));// перевірити чи працює!!!!
+                returnModel.AttachmentsId = new List<int>(msg.Attachments.Select(x => x.Id) as IEnumerable<int>);
+                returnModel.AttachmentsNames = new List<string>(msg.Attachments.Select(x => x.FileName) as IEnumerable<string>);// перевірити чи працює!!!!
+                returnModel.AttachmentUrls = new List<string>(msg.Attachments.Select(x => GetUrlAttachment(x)) as IEnumerable<string>);
+            }
             var hubContext = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ChatHub>();
             hubContext.Clients.All.NotifyAll(msg.Id, msg.ChatRoom.Id, msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body, msg.DateTime);
             foreach (var item in chatRoom.ChatRoomMembers)
@@ -100,7 +115,7 @@ namespace markchat.Controllers
                     continue;
                 if (ChatHub.Users.ContainsKey(item.User.Id))
                     //hubContext.Clients.Client(ChatHub.Users[item.User.Id]).SendMsg(msg.Id, msg.ChatRoom.Id,msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body);
-                    hubContext.Clients.Client(ChatHub.Users[item.User.Id]).sendMsg(msg.Id, msg.ChatRoom.Id, msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body, msg.DateTime);
+                    hubContext.Clients.Client(ChatHub.Users[item.User.Id]).sendMsg(returnModel);
             }
             return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Success" }); 
         }
