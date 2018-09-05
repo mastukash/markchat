@@ -104,7 +104,7 @@ namespace markchat.Models
         public string Name{ get; set; }
         public string OwnerUserId{ get; set; }
         public string OwnerUserName { get; set; }
-        public string OwnerUrlPhoto { get; set; }
+        //public string OwnerUrlPhoto { get; set; }
         public int RootCategoryId { get; set; }
         public string RootCategoryName { get; set; }
     }
@@ -141,8 +141,7 @@ namespace markchat.Models
     {
         public string UserId { get; set; }
         public string FullName { get; set; }
-        public string PhotoName { get; set; }
-        public string Photo { get; set; }
+        public string UserUrlPhoto { get; set; }
     }
     
     public class ChatUserModel

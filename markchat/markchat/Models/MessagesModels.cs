@@ -66,6 +66,8 @@ namespace markchat.Models
         public string Body { get; set; }
         public string UserName { get; set; }
         public DateTime? DateTime { get; set; }
+        public string UserUrlPhoto { get; set; }
+
         //public List<string> Attachments { get; set; }
         public List<int> AttachmentsId { get; set; }
         public List<string> AttachmentsNames { get; set; }
@@ -84,6 +86,8 @@ namespace markchat.Models
         public int ChatRoomId { get; set; }
         public string FriendUserId { get; set; }
         public string FriendUserName { get; set; }
+        public string UserUrlPhoto { get; set; }
+
     }
     public class CreatePrivateUserChatRoomModel
     {

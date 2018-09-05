@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.Web;
 using System.Web.Http;
+using System.Web.Http.ModelBinding;
 using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.AspNet.Identity.Owin;
@@ -17,10 +18,13 @@ using markchat.Models;
 using markchat.Providers;
 using markchat.Results;
 using System.IO;
+using ZstdNet;
 using MarkChat.DAL;
 using MarkChat.DAL.Entities;
 using System.Net;
 using MarkChat.DAL.Repository;
+using Microsoft.Owin.Testing;
+using System.Text;
 
 namespace markchat.Controllers
 {
@@ -51,10 +55,10 @@ namespace markchat.Controllers
         [Route("GetUserImage")]
         public IHttpActionResult GetUserImage([FromUri]string UserId, [FromUri]string PhotoName)
         {
-            var filePath = HttpContext.Current.Server.MapPath($@"..\..\Images\UserPhotos\{UserId}\{PhotoName}");
-            if (!File.Exists(filePath))
-                filePath = HttpContext.Current.Server.MapPath($@"..\..\Images\UserPhotos\userPhoto.png");
-            var dataBytes = File.ReadAllBytes(filePath);
+            string file_path = HttpContext.Current.Server.MapPath($@"..\..\Images\UserPhotos\{UserId}\{PhotoName}");
+            if (!File.Exists(file_path))
+                file_path = HttpContext.Current.Server.MapPath($@"..\..\Images\UserPhotos\userPhoto.png");
+            var dataBytes = File.ReadAllBytes(file_path);
             var dataStream = new MemoryStream(dataBytes);
             return new CustomFileResult(dataStream, Request, PhotoName);
         }
@@ -70,12 +74,11 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "User doesn't exists");
             }
             var tagChats = await repository.Repository<TagChat>().FindAllAsync(x => x.Name.Contains(model.TagChatName));
-            var enumerable = tagChats as TagChat[] ?? tagChats.ToArray();
-            if (enumerable?.Count() == 0)
+            if (tagChats==null || tagChats?.Count() == 0)
             {
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Tag Chats not found");
             }
-            var returnModel = enumerable.Select(item => new {
+            var returnModel = tagChats.Select(item => new {
                 TagChatId = item.Id,
                 TagChatName = item.Name,
                 OwnerId = item.OwnerUser.Id,
@@ -161,7 +164,12 @@ namespace markchat.Controllers
                 return tmp;
             }
             ).ToList();
-            return Request.CreateResponse(HttpStatusCode.OK, responceModel);
+
+            
+
+            var responce = Request.CreateResponse(HttpStatusCode.OK, responceModel);
+
+            return responce;
         }
 
         [HttpGet]
@@ -326,7 +334,12 @@ namespace markchat.Controllers
                 return tmp;
             }
             ).ToList();
-            return Request.CreateResponse(HttpStatusCode.OK, responceModel);
+
+
+
+            var responce = Request.CreateResponse(HttpStatusCode.OK, responceModel);
+
+            return responce;
         }
 
         [HttpPost]
@@ -367,7 +380,7 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "You dont have premission");
             foreach (var item in model.UsersId)
             {
-                if (chat.Users.FirstOrDefault(x => x.Id == item) != null)
+                if (chat.Users.Where(x => x.Id == item).FirstOrDefault() != null)
                   continue;
                 if ((await repository.Repository<InvRequestToUser>().FindAllAsync(x => x.User.Id == item && x.TagChat.Id == model.TagChatId && x.InvRequest.Confirmed == false && x.InvRequest.Denied == false)).FirstOrDefault() != null)
                     continue;
@@ -426,7 +439,7 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Wrong request");
             if (chat == null)
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Chat doesn't exists");
-            if (chat.Users.FirstOrDefault(x => x.Id == user.Id) != null)
+            if (chat.Users.Where(x => x.Id == user.Id).FirstOrDefault() != null)
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already exists in chat");
             if (invReq.InvRequest.Confirmed == true)
                 return Request.CreateErrorResponse(HttpStatusCode.Conflict, "User already confirmed");
@@ -681,7 +694,7 @@ namespace markchat.Controllers
             //    Title = model.TitleNewCat
             //});
             await repository.SaveAsync();
-            return Request.CreateResponse(HttpStatusCode.OK, "Category added");
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Category added" });
         }
 
         /// <summary>
@@ -761,7 +774,7 @@ namespace markchat.Controllers
                     Name = x.Name,
                     OwnerUserId = x.OwnerUser.Id,
                     OwnerUserName = x.OwnerUser.FullName != "" ? x.OwnerUser.FullName : x.OwnerUser.PhoneNumber,
-                    OwnerUrlPhoto = GetUrlUserPhoto(x.OwnerUser),
+                    //OwnerUrlPhoto = GetUrlUserPhoto(x.OwnerUser),
                     RootCategoryId = x.RootCategory.Id,
                     RootCategoryName = x.RootCategory.Name,
                 }));
@@ -788,7 +801,7 @@ namespace markchat.Controllers
                     Name = x.Name,
                     OwnerUserId = x.OwnerUser.Id,
                     OwnerUserName = x.OwnerUser.FullName == "" ? x.OwnerUser.FullName : x.OwnerUser.PhoneNumber,
-                    OwnerUrlPhoto = GetUrlUserPhoto(x.OwnerUser),
+                    //OwnerUrlPhoto = GetUrlUserPhoto(x.OwnerUser),
                     RootCategoryId = x.RootCategory.Id,
                     RootCategoryName = x.RootCategory.Name,
                 }));
@@ -946,17 +959,18 @@ namespace markchat.Controllers
             }
 
             List<Notification> messages = new List<Notification>();
-
-            void Search(Category c)
+                        
+            Action<Category> search = null;
+            search = delegate (Category c)
             {
-                c.Notifications.Where(y => y.Price >= model.MinPrice && y.Price <= model.MaxPrice && y.PublicationDate >= model.FromDate && y.PublicationDate <= model.ToDate)
-                    .ToList()
-                    .ForEach(y => messages.Add(y));
+                c.Notifications.Where(y=>y.Price>=model.MinPrice && y.Price<=model.MaxPrice && y.PublicationDate>= model.FromDate && y.PublicationDate<=model.ToDate)
+                .ToList().ForEach(y => messages.Add(y));
 
-                if (c.ChildCategories.Count > 0) c.ChildCategories.ForEach(x => Search(x));
-            }
+                if (c.ChildCategories.Count > 0)
+                    c.ChildCategories.ForEach(x => search(x));
+            };
 
-            Search(category);
+            search(category);
 
             var responceModel = messages.OrderBy(x=>x.PublicationDate).Select(x =>
             {
@@ -1036,9 +1050,9 @@ namespace markchat.Controllers
             category.ChildCategories.ForEach(x => childCategories.Add(new CategoryInfo { CategoryId = x.Id, Name = x.Name, Title = x.Title }));
 
 
-            return Request.CreateResponse(HttpStatusCode.OK, childCategories);
+            var responce = Request.CreateResponse(HttpStatusCode.OK, childCategories);
 
-            
+            return responce;
         }
 
         [HttpPost]
@@ -1097,34 +1111,15 @@ namespace markchat.Controllers
             {
                 var userInfo = new GetMemberModel
                 {
-                    FullName = string.IsNullOrEmpty(x.FullName) ? x.PhoneNumber : x.FullName,
+                    FullName = x.FullName == "" || x.FullName == null ? x.PhoneNumber : x.FullName,
+                    UserId = x.Id,
+                    UserUrlPhoto = GetUrlUserPhoto(x)
                 };
-                x.PhotoName = GetUrlUserPhoto(x);
-                //if (x.PhotoName != null)
-                //{
-                //    userInfo.PhotoName = x.PhotoName;
-                //    if(File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
-                //            $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName)))
-                //    userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(Path.Combine(HttpContext.Current.Server.MapPath(
-                //            $"~/Images/UserPhotos/{x.Id}/"), x.PhotoName)));
-                //    else
-                //    {
-                //        userInfo.PhotoName = "userPhoto.jpg";
-                //        userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
-                //                $"~/Images/UserPhotos/userPhoto.png")));
-                //    }
-
-                //}
-                //else
-                //{
-                //    userInfo.PhotoName = "userPhoto.jpg";
-                //    userInfo.Photo = Convert.ToBase64String(File.ReadAllBytes(HttpContext.Current.Server.MapPath(
-                //            $"~/Images/UserPhotos/userPhoto.png")));
-                //}
-                userInfo.UserId = x.Id;
+                
                 returnModel.Add(userInfo);
             });
-            return Request.CreateResponse(HttpStatusCode.OK, returnModel);
+            var responce = Request.CreateResponse(HttpStatusCode.OK, returnModel);
+            return responce;
         }
         #endregion  
 
@@ -1368,7 +1363,7 @@ namespace markchat.Controllers
 
             }
             await repository.SaveAsync();
-            return Request.CreateResponse(HttpStatusCode.OK, "Success");
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Success" });
         }
 
 
@@ -1387,7 +1382,7 @@ namespace markchat.Controllers
 
             await repository.SaveAsync();
 
-            return Request.CreateResponse(HttpStatusCode.OK,"FullName changed");
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "FullName changed" });
         }
 
         [HttpPost]
@@ -1423,7 +1418,7 @@ namespace markchat.Controllers
 
             await repository.SaveAsync();
 
-            return Request.CreateResponse(HttpStatusCode.OK, "Email changed. Please confirm it.");
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Email changed. Please confirm it." });
         }
         
         [HttpPost]
@@ -1442,7 +1437,8 @@ namespace markchat.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest,"Bad Request");
             }
             var result = await UserManager.ConfirmEmailAsync(user.Id, model.Code);
-            return Request.CreateResponse(HttpStatusCode.OK,result.Succeeded ? "ConfirmEmail" : "Error");
+            return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = result.Succeeded ? "ConfirmEmail" : "Error" });
+            
         }
 
         [HttpPost]
@@ -1470,9 +1466,8 @@ namespace markchat.Controllers
                             ), fileData);
 
                 await repository.SaveAsync();
-
-                return Request.CreateResponse(HttpStatusCode.OK, "Photo changed.");
-
+                return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "Photo changed" });
+                
             }
 
 
@@ -1500,8 +1495,14 @@ namespace markchat.Controllers
 
         public ApplicationUserManager UserManager
         {
-            get => _userManager ?? Request.GetOwinContext().GetUserManager<ApplicationUserManager>();
-            private set => _userManager = value;
+            get
+            {
+                return _userManager ?? Request.GetOwinContext().GetUserManager<ApplicationUserManager>();
+            }
+            private set
+            {
+                _userManager = value;
+            }
         }
 
         public ISecureDataFormat<AuthenticationTicket> AccessTokenFormat { get; private set; }
@@ -1621,7 +1622,9 @@ namespace markchat.Controllers
 
             AuthenticationTicket ticket = AccessTokenFormat.Unprotect(model.ExternalAccessToken);
 
-            if (ticket?.Identity == null || (ticket.Properties?.ExpiresUtc != null && ticket.Properties.ExpiresUtc.Value < DateTimeOffset.UtcNow))
+            if (ticket == null || ticket.Identity == null || (ticket.Properties != null
+                && ticket.Properties.ExpiresUtc.HasValue
+                && ticket.Properties.ExpiresUtc.Value < DateTimeOffset.UtcNow))
             {
                 return BadRequest("External login failure.");
             }
@@ -1717,7 +1720,7 @@ namespace markchat.Controllers
                 ClaimsIdentity cookieIdentity = await user.GenerateUserIdentityAsync(UserManager,
                     CookieAuthenticationDefaults.AuthenticationType);
 
-                AuthenticationProperties properties = ApplicationOAuthProvider.CreateProperties(user.UserName);
+                AuthenticationProperties properties = ApplicationOAuthProvider.CreateProperties(user);
                 Authentication.SignIn(properties, oAuthIdentity, cookieIdentity);
             }
             else
@@ -1804,7 +1807,7 @@ namespace markchat.Controllers
             if (user == null )
             {
             
-                if (dbUser?.AccessFailedCount == 3)
+                if (dbUser!= null && dbUser?.AccessFailedCount == 3)
                 {
                     return BadRequest("Exceeded limit of attempts");
                 }
@@ -1828,7 +1831,7 @@ namespace markchat.Controllers
             var request = HttpContext.Current.Request;
             var tokenServiceUrl = request.Url.GetLeftPart(UriPartial.Authority) + request.ApplicationPath + "Token";
 
-            if (dbUser != null) dbUser.AccessFailedCount = 0;
+            dbUser.AccessFailedCount = 0;
             await repository.SaveAsync();
             using (var client = new HttpClient())
             {
@@ -1840,6 +1843,7 @@ namespace markchat.Controllers
             };
                 var requestParamsFormUrlEncoded = new FormUrlEncodedContent(requestParams);
                 var tokenServiceResponse = await client.PostAsync(tokenServiceUrl, requestParamsFormUrlEncoded);
+                
                 return this.ResponseMessage(tokenServiceResponse);
             }
         }
@@ -2027,7 +2031,10 @@ namespace markchat.Controllers
 
         #region Helpers
 
-        private IAuthenticationManager Authentication => Request.GetOwinContext().Authentication;
+        private IAuthenticationManager Authentication
+        {
+            get { return Request.GetOwinContext().Authentication; }
+        }
 
         private IHttpActionResult GetErrorResult(IdentityResult result)
         {
@@ -2036,23 +2043,26 @@ namespace markchat.Controllers
                 return InternalServerError();
             }
 
-            if (result.Succeeded) return null;
-            if (result.Errors != null)
+            if (!result.Succeeded)
             {
-                foreach (string error in result.Errors)
+                if (result.Errors != null)
                 {
-                    ModelState.AddModelError("", error);
+                    foreach (string error in result.Errors)
+                    {
+                        ModelState.AddModelError("", error);
+                    }
                 }
+
+                if (ModelState.IsValid)
+                {
+                    // No ModelState errors are available to send, so just return an empty BadRequest.
+                    return BadRequest();
+                }
+
+                return BadRequest(ModelState);
             }
 
-            if (ModelState.IsValid)
-            {
-                // No ModelState errors are available to send, so just return an empty BadRequest.
-                return BadRequest();
-            }
-
-            return BadRequest(ModelState);
-
+            return null;
         }
 
         private class ExternalLoginData
@@ -2078,7 +2088,12 @@ namespace markchat.Controllers
 
             public static ExternalLoginData FromIdentity(ClaimsIdentity identity)
             {
-                Claim providerKeyClaim = identity?.FindFirst(ClaimTypes.NameIdentifier);
+                if (identity == null)
+                {
+                    return null;
+                }
+
+                Claim providerKeyClaim = identity.FindFirst(ClaimTypes.NameIdentifier);
 
                 if (providerKeyClaim == null || String.IsNullOrEmpty(providerKeyClaim.Issuer)
                     || String.IsNullOrEmpty(providerKeyClaim.Value))
