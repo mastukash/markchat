@@ -1385,6 +1385,21 @@ namespace markchat.Controllers
             return Request.CreateResponse(HttpStatusCode.OK, new { Finished = true, Message = "FullName changed" });
         }
 
+
+        [HttpGet]
+        [Route("GetUserInfo")]
+        public async Task<HttpResponseMessage> UserInfo()
+        {
+            ApplicationUser user = await repository.Repository<ApplicationUser>().FindByIdAsync(User.Identity.GetUserId());
+
+            if (user == null)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, "User doesn't exists");
+            }
+
+            return Request.CreateResponse(HttpStatusCode.OK, new { user.Email, user.FullName, UserPhotoUrl = GetUrlUserPhoto(user) });
+        }
+
         [HttpPost]
         [Route("ChangeEmail")]
         public async Task<HttpResponseMessage> ChangeEmail(ChangeEmailModel model)

@@ -58,7 +58,11 @@ namespace markchat.Models
     {
         public string UserId { get; set; }
     }
-    
+
+    public class NotifyChatRoomMessageModel: ChatRoomMessageModel
+    {
+        public int RoomId { get; set; }
+    }
     public class ChatRoomMessageModel
     {
         public int Id { get; set; }

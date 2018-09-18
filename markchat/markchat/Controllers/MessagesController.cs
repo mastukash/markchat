@@ -29,6 +29,9 @@ namespace markchat.Controllers
 
         private string GetUrlUserPhoto(ApplicationUser user)
         {
+            if (user == null)
+                return Request.RequestUri.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/userPhoto.png";
+
             return File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
                             $"/Images/UserPhotos/{user.Id}/{user.PhotoName}")))
                             ? Request.RequestUri.GetLeftPart(UriPartial.Authority) + $"/Images/UserPhotos/{user.Id}/{user.PhotoName}"
@@ -91,14 +94,15 @@ namespace markchat.Controllers
                 }
             }
             await repository.SaveAsync();
-            var returnModel = new ChatRoomMessageModel
+            var returnModel = new NotifyChatRoomMessageModel
             {
                 Id = msg.Id,
                 Body = msg.Body,
                 UserId = msg.ChatRoomMember.User.Id,
                 UserName = msg.ChatRoomMember.User.UserName,
                 UserUrlPhoto = GetUrlUserPhoto(msg.ChatRoomMember.User),
-                DateTime = msg.DateTime
+                DateTime = msg.DateTime,
+                RoomId = msg.ChatRoom.Id
             };
             if (msg.Attachments != null && msg.Attachments.Count > 0)
             {
@@ -108,7 +112,7 @@ namespace markchat.Controllers
                 returnModel.AttachmentUrls = new List<string>(msg.Attachments.Select(x => GetUrlAttachment(x)) as IEnumerable<string>);
             }
             var hubContext = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ChatHub>();
-            hubContext.Clients.All.NotifyAll(msg.Id, msg.ChatRoom.Id, msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body, msg.DateTime);
+            //hubContext.Clients.All.NotifyAll(msg.Id, msg.ChatRoom.Id, msg.ChatRoomMember.User.Id, msg.ChatRoomMember.User.UserName, msg.Body, msg.DateTime);
             foreach (var item in chatRoom.ChatRoomMembers)
             {
                 if (item.User.Id == user.Id)
@@ -327,7 +331,7 @@ namespace markchat.Controllers
                     ChatRoomId = item.ChatRoom.Id,
                     FriendUserId = item.ChatRoom.ChatRoomMembers.FirstOrDefault(x => x.User.Id != user.Id)?.User.Id,
                     FriendUserName = item.ChatRoom.ChatRoomMembers.FirstOrDefault(x => x.User.Id != user.Id)?.User.UserName,
-                    UserUrlPhoto = GetUrlUserPhoto(item.User)
+                    UserUrlPhoto = GetUrlUserPhoto(item.ChatRoom.ChatRoomMembers.FirstOrDefault(x => x.User.Id != user.Id)?.User)
                 }));
             return Request.CreateResponse(HttpStatusCode.OK, model);
         }

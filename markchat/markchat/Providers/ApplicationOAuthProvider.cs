@@ -256,7 +256,7 @@ namespace markchat.Providers
         {
             IDictionary<string, string> data = new Dictionary<string, string>
             {
-                { "userName", user.FullName == "" ? user.PhoneNumber : user.FullName  }
+                { "userName", String.IsNullOrEmpty(user.FullName) ? user.PhoneNumber : user.FullName  }
             };
             data.Add("userUrlPhoto", File.Exists(Path.Combine(HttpContext.Current.Server.MapPath(
                             $"/Images/UserPhotos/{user.Id}/{user.PhotoName}")))
